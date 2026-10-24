@@ -1,3 +1,10 @@
+import { ResetPasswordForm } from '@/components/auth/ResetPasswordForm';
+import { AuthLayout } from '@/components/layout/AuthLayout';
+
 export function ResetPasswordPage() {
-  return <h1>Set a new password</h1>;
+  return (
+    <AuthLayout title="Set a new password" description="Choose a new password for your account.">
+      <ResetPasswordForm />
+    </AuthLayout>
+  );
 }
