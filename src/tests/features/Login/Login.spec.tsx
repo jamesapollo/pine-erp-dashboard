@@ -79,6 +79,43 @@ describe('Login', () => {
     expect(router.state.location.pathname).toBe('/login');
   });
 
+  it('falls back to a general error when a 422 has no email message', async () => {
+    recordLogins(() =>
+      HttpResponse.json({ message: 'Invalid.', errors: { password: ['Bad.'] } }, { status: 422 }),
+    );
+    customRenderAtRoute({ url: '/login' });
+
+    await fillAndSubmit();
+
+    expect(await screen.findByText('Something went wrong. Try again.')).toBeVisible();
+  });
+
+  it('sends a signed-in user straight to the page in the redirect', async () => {
+    server.use(http.get(mockEndpoints.me, () => HttpResponse.json({ data: buildUserFixture() })));
+    const { router } = customRenderAtRoute({ url: '/login?redirect=%2Forders%2F42' });
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/orders/42'));
+  });
+
+  it('ignores an off-site redirect for a signed-in user', async () => {
+    server.use(http.get(mockEndpoints.me, () => HttpResponse.json({ data: buildUserFixture() })));
+    const { router } = customRenderAtRoute({ url: '/login?redirect=%2F%2Fevil.com' });
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
+  });
+
+  it('sends a user without a store to the overview whatever the redirect', async () => {
+    server.use(
+      http.get(mockEndpoints.me, () =>
+        HttpResponse.json({ data: buildUserFixture({ memberships: [] }) }),
+      ),
+    );
+    const { router } = customRenderAtRoute({ url: '/login?redirect=%2Forders%2F42' });
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
+    expect(await screen.findByText("You don't have access to a store yet")).toBeVisible();
+  });
+
   it('tells the user how long to wait after too many attempts', async () => {
     recordLogins(() => new HttpResponse(null, { status: 429, headers: { 'Retry-After': '42' } }));
     customRenderAtRoute({ url: '/login' });

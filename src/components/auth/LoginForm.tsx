@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { z } from 'zod';
 
 import { useSignInMutation } from '@/hooks/api/mutations/auth/useSignInMutation';
@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/Input';
 import { TextLink } from '@/components/ui/TextLink';
 import { getFieldError, getRetryAfterSeconds, isStatus } from '@/utils/apiErrors';
 import { emailSchema } from '@/utils/emailSchema';
-import { getSafeRedirectPath } from '@/utils/safeRedirect';
 import { ROUTES } from '@/constants/routes';
 
 const loginSchema = z.object({
@@ -21,9 +20,7 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
-  const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
   const signInMutation = useSignInMutation();
   const {
     register,
@@ -34,17 +31,16 @@ export function LoginForm() {
 
   const notice = (location.state as { notice?: string } | null)?.notice;
   const { error } = signInMutation;
+  const hasEmailFieldError = isStatus(error, 422) && Boolean(getFieldError(error, 'email'));
 
   function onSubmit(data: LoginFormData) {
     if (signInMutation.isPending) return;
     signInMutation.mutate(data, {
-      onSuccess: () => {
-        void navigate(getSafeRedirectPath(searchParams.get('redirect')), { replace: true });
-      },
       onError: (mutationError) => {
-        if (isStatus(mutationError, 422)) {
-          setError('email', { message: getFieldError(mutationError, 'email') });
-        }
+        const emailError = isStatus(mutationError, 422)
+          ? getFieldError(mutationError, 'email')
+          : undefined;
+        if (emailError) setError('email', { message: emailError });
       },
     });
   }
@@ -57,7 +53,7 @@ export function LoginForm() {
       <form noValidate onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         {isStatus(error, 429) ? (
           <Alert tone="danger">{tooManyAttemptsMessage(getRetryAfterSeconds(error))}</Alert>
-        ) : error && !isStatus(error, 422) ? (
+        ) : error && !hasEmailFieldError ? (
           <Alert tone="danger">Something went wrong. Try again.</Alert>
         ) : null}
         <Input

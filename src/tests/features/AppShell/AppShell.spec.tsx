@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 
+import { queryKeys } from '@/hooks/api/queryKeys';
 import { buildUserFixture } from '@/tests/fixtures/user';
 import { mockEndpoints } from '@/tests/mocks/endpoints';
 import { server } from '@/tests/mocks/server';
@@ -81,5 +82,30 @@ describe('AppShell', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Sign out' }));
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/login'));
+  });
+
+  it('stays signed in and says so when sign-out fails', async () => {
+    respondWithUser();
+    server.use(http.post(mockEndpoints.logout, () => new HttpResponse(null, { status: 500 })));
+    const { router, queryClient } = customRenderAtRoute({ url: '/' });
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Sign out' }));
+
+    expect(await screen.findByText("Couldn't sign out. Try again.")).toBeVisible();
+    expect(router.state.location.pathname).toBe('/');
+    expect(screen.getByText('Zion')).toBeVisible();
+    expect(queryClient.getQueryData(queryKeys.me)).toBeTruthy();
+  });
+
+  it('stays on the no-store screen and says so when sign-out fails', async () => {
+    respondWithUser(buildUserFixture({ memberships: [] }));
+    server.use(http.post(mockEndpoints.logout, () => new HttpResponse(null, { status: 500 })));
+    const { router } = customRenderAtRoute({ url: '/' });
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Sign out' }));
+
+    expect(await screen.findByText("Couldn't sign out. Try again.")).toBeVisible();
+    expect(router.state.location.pathname).toBe('/');
+    expect(screen.getByText("You don't have access to a store yet")).toBeVisible();
   });
 });

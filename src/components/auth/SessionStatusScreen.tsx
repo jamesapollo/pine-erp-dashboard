@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 
 export function SessionStatusScreen({
@@ -10,16 +11,18 @@ export function SessionStatusScreen({
 }) {
   if (status === 'loading') {
     return (
-      <main>
-        <Spinner label="Loading your session" />
+      <main className="flex min-h-screen items-center justify-center bg-surface-app text-brand-600">
+        <Spinner label="Loading your session" className="size-8 border-[3px]" />
       </main>
     );
   }
 
   return (
-    <main>
-      <h1>Can't reach the server.</h1>
-      <Button onClick={onRetry}>Try again</Button>
+    <main className="flex min-h-screen items-center justify-center bg-surface-app p-6">
+      <Card className="flex w-full max-w-[400px] flex-col gap-4 p-8">
+        <h1 className="text-xl font-semibold text-text-primary">Can't reach the server.</h1>
+        <Button onClick={onRetry}>Try again</Button>
+      </Card>
     </main>
   );
 }

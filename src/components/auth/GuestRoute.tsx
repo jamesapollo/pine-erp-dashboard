@@ -1,11 +1,13 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useSearchParams } from 'react-router-dom';
 
 import { useSession } from '@/hooks/useSession';
 import { SessionStatusScreen } from '@/components/auth/SessionStatusScreen';
+import { getSafeRedirectPath } from '@/utils/safeRedirect';
 import { ROUTES } from '@/constants/routes';
 
 export function GuestRoute() {
   const session = useSession();
+  const [searchParams] = useSearchParams();
 
   switch (session.status) {
     case 'loading':
@@ -15,7 +17,8 @@ export function GuestRoute() {
     case 'anon':
       return <Outlet />;
     case 'no-store':
-    case 'authed':
       return <Navigate to={ROUTES.ROOT} replace />;
+    case 'authed':
+      return <Navigate to={getSafeRedirectPath(searchParams.get('redirect'))} replace />;
   }
 }

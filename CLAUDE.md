@@ -348,8 +348,9 @@ export const axiosInstance = axios.create({
 
 ### Library
 
-React Router DOM v6 — `createBrowserRouter` with basename `/`. The build is served under `/admin/` in production
-by the API, which rewrites the app's paths to `index.html`; Vite's `base` only affects asset URLs.
+React Router DOM v6 — `createBrowserRouter` with basename `/`. The build lives in the API's `public/admin/`; pages
+are served at the root of the admin host (the API rewrites the app's paths to `index.html`), and only asset URLs carry
+the `/admin/` prefix (Vite's `base`).
 
 ### Route definition (`/src/Router.tsx`)
 
@@ -431,10 +432,13 @@ type Session =
 - `ProtectedRoute` (`components/auth/ProtectedRoute.tsx`) shows a status screen while `loading`, a retry screen on
   `error`, redirects `anon` to `ROUTES.LOGIN`, shows a no-access screen for `no-store`, and renders `<Outlet />` when
   `authed`.
-- `GuestRoute` (`components/auth/GuestRoute.tsx`) redirects an `authed` user to `ROUTES.ROOT`.
+- `GuestRoute` (`components/auth/GuestRoute.tsx`) owns the post-sign-in redirect: an `authed` user goes to
+  `getSafeRedirectPath(?redirect)` (replace), a `no-store` user to `ROUTES.ROOT`. `LoginForm` does not navigate itself.
 - Auth actions are mutations (`useSignInMutation`, `useSignOutMutation`, `useForgotPasswordMutation`,
   `useResetPasswordMutation`). Sign-in seeds or invalidates the `me` query; sign-out (`useSignOut`) clears the query
-  cache.
+  cache and navigates to login only after the server confirms (204) or reports the session already gone (401); on any
+  other failure the user stays put and sees "Couldn't sign out. Try again." The 401 handler drops every cached query
+  except `me` and sets `me` to `null`, so mounted observers stay attached.
 
 ---
 
@@ -529,7 +533,7 @@ const {
 
 ```typescript
 // Simple native input
-<Input {...register('email')} />
+<Input label="Email" {...register('email')} />
 
 // A non-native input (custom picker, switch) would use <Controller name control render />
 // instead of register. No such input exists yet.
@@ -769,9 +773,10 @@ Every form uses React Hook Form with a Zod schema, shared UI primitives and `For
 ```typescript
 const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
   resolver: zodResolver(loginSchema),
+  mode: 'onSubmit',
 });
 
-<Input {...register('email')} aria-describedby="email-error" />
+<Input label="Email" {...register('email')} aria-describedby="email-error" />
 <FormErrorMessage id="email-error" message={errors.email?.message} />
 ```
 

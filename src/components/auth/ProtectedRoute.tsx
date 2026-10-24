@@ -9,7 +9,7 @@ import { ROUTES } from '@/constants/routes';
 export function ProtectedRoute() {
   const session = useSession();
   const { pathname, search } = useLocation();
-  const { signOut } = useSignOut();
+  const { signOut, hasFailed } = useSignOut();
 
   switch (session.status) {
     case 'loading':
@@ -25,7 +25,7 @@ export function ProtectedRoute() {
       return <Navigate to={loginPath} replace />;
     }
     case 'no-store':
-      return <NoStoreAccess onSignOut={() => void signOut()} />;
+      return <NoStoreAccess onSignOut={() => void signOut()} hasSignOutFailed={hasFailed} />;
     case 'authed':
       return <Outlet />;
   }

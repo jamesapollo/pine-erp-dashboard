@@ -5,6 +5,7 @@ import { type StoreSummary, type User } from '@/types/session';
 import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
+import { SignOutError } from '@/components/ui/SignOutError';
 import { useSignOut } from '@/hooks/useSignOut';
 import { ROUTES } from '@/constants/routes';
 import { cn } from '@/utils/cn';
@@ -18,7 +19,7 @@ export function Sidebar({
   user: User;
   roles: string[];
 }) {
-  const { signOut, isSigningOut } = useSignOut();
+  const { signOut, isSigningOut, hasFailed } = useSignOut();
   const [primaryRole = ''] = roles;
   const roleLabel = primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1);
 
@@ -60,6 +61,11 @@ export function Sidebar({
           )}
         </NavLink>
       </nav>
+      {hasFailed ? (
+        <div className="px-3 pb-2">
+          <SignOutError />
+        </div>
+      ) : null}
       <div className="flex items-center gap-2.5 border-t border-border-subtle p-3">
         <Avatar name={user.name} size={32} />
         <div className="min-w-0 flex-1">

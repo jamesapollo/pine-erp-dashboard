@@ -19,7 +19,7 @@ export function useSignOutMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: signOut,
-    onSettled: () => {
+    onSuccess: () => {
       queryClient.clear();
       queryClient.setQueryData(queryKeys.me, null);
     },
