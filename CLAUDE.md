@@ -125,7 +125,7 @@ components/ui/
 
 - `camelCase` throughout.
 - Booleans: `is*`, `has*`, `should*` — e.g., `isSubmitting`, `hasMemberships`, `shouldRetry`.
-- Callbacks: `on*` — e.g., `onSubmit`, `onPlaceSelected`, `onError`.
+- Callbacks: `on*` — e.g., `onSubmit`, `onError`, `onSuccess`.
 
 ### Full semantic words — no abbreviations
 
@@ -159,10 +159,10 @@ No class components anywhere in the codebase.
 - Destructure in the parameter list.
 
 ```typescript
-export function ShortTextInput({ input, isReadOnly }: {
-  input: FormInput;
-  isReadOnly: boolean;
-}) { … }
+export function FormErrorMessage({ id, message }: { id: string; message?: string }) {
+  if (!message) return null;
+  return <span id={id} role="alert">{message}</span>;
+}
 ```
 
 ### `forwardRef`
@@ -170,12 +170,12 @@ export function ShortTextInput({ input, isReadOnly }: {
 Use when the consumer needs a DOM ref. Always set `displayName`.
 
 ```typescript
-export const AddressGoogleAutocompleteInput = forwardRef<
-  HTMLInputElement,
-  AddressEditInputProps
->(({ onPlaceSelected, ...props }, ref) => { … });
+// components/ui/Input.tsx (Button and IconButton follow the same shape)
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+  ({ label, hint, error, ...props }, ref) => { … },
+);
 
-AddressGoogleAutocompleteInput.displayName = 'AddressGoogleAutocompleteInput';
+Input.displayName = 'Input';
 ```
 
 ### Composition
@@ -518,13 +518,11 @@ Use `unknown` at system boundaries and narrow with type guards. `strict` is on.
 
 ```typescript
 const {
-  control,
   register,
+  handleSubmit,
+  setError,
   formState: { errors },
-} = useForm<LoginFormData>({
-  resolver: zodResolver(loginSchema),
-  mode: 'onBlur',
-});
+} = useForm<LoginFormData>({ resolver: zodResolver(loginSchema), mode: 'onSubmit' });
 ```
 
 ### Input binding
@@ -533,14 +531,8 @@ const {
 // Simple native input
 <Input {...register('email')} />
 
-// Complex component (checkbox, custom picker)
-<Controller
-  name="remember"
-  control={control}
-  render={({ field }) => (
-    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-  )}
-/>
+// A non-native input (custom picker, switch) would use <Controller name control render />
+// instead of register. No such input exists yet.
 ```
 
 ### Error display
