@@ -17,3 +17,10 @@ export function getRetryAfterSeconds(error: unknown): number | undefined {
   if (typeof value !== 'string' || !/^\d+$/.test(value.trim())) return undefined;
   return Number.parseInt(value, 10);
 }
+
+export function getTooManyRequestsMessage(error: unknown): string {
+  const seconds = getRetryAfterSeconds(error);
+  return seconds === undefined
+    ? 'Too many requests. Try again in a minute.'
+    : `Too many requests. Try again in ${seconds} seconds.`;
+}

@@ -1,22 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
 import { z } from 'zod';
 
 import { useForgotPasswordMutation } from '@/hooks/api/mutations/auth/useForgotPasswordMutation';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { TextLink } from '@/components/ui/TextLink';
 import { emailSchema } from '@/utils/emailSchema';
-import { getFieldError, getRetryAfterSeconds, isStatus } from '@/utils/apiErrors';
+import { getFieldError, getTooManyRequestsMessage, isStatus } from '@/utils/apiErrors';
 import { ROUTES } from '@/constants/routes';
 
 const forgotPasswordSchema = z.object({ email: emailSchema });
 
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
-
-const backToSignInClassName =
-  'text-[13px] font-medium leading-none text-text-link no-underline hover:underline';
 
 export function ForgotPasswordForm() {
   const forgotPasswordMutation = useForgotPasswordMutation();
@@ -52,9 +49,7 @@ export function ForgotPasswordForm() {
           Check your email. If an account exists for {variables.email}, a reset link is on its way.
           The link expires in 60 minutes.
         </Alert>
-        <Link to={ROUTES.LOGIN} className={backToSignInClassName}>
-          Back to sign in
-        </Link>
+        <TextLink to={ROUTES.LOGIN}>Back to sign in</TextLink>
       </>
     );
   }
@@ -62,7 +57,7 @@ export function ForgotPasswordForm() {
   return (
     <form noValidate onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
       {isStatus(error, 429) ? (
-        <Alert tone="danger">{tooManyRequestsMessage(getRetryAfterSeconds(error))}</Alert>
+        <Alert tone="danger">{getTooManyRequestsMessage(error)}</Alert>
       ) : error && !isStatus(error, 422) ? (
         <Alert tone="danger">Something went wrong. Try again.</Alert>
       ) : null}
@@ -82,15 +77,7 @@ export function ForgotPasswordForm() {
       >
         Send reset link
       </Button>
-      <Link to={ROUTES.LOGIN} className={backToSignInClassName}>
-        Back to sign in
-      </Link>
+      <TextLink to={ROUTES.LOGIN}>Back to sign in</TextLink>
     </form>
   );
-}
-
-function tooManyRequestsMessage(seconds: number | undefined): string {
-  return seconds === undefined
-    ? 'Too many requests. Try again in a minute.'
-    : `Too many requests. Try again in ${seconds} seconds.`;
 }

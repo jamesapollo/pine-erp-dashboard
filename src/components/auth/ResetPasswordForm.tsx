@@ -1,13 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import { useResetPasswordMutation } from '@/hooks/api/mutations/auth/useResetPasswordMutation';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { getFieldError, getRetryAfterSeconds, isStatus } from '@/utils/apiErrors';
+import { TextLink } from '@/components/ui/TextLink';
+import { getFieldError, getTooManyRequestsMessage, isStatus } from '@/utils/apiErrors';
 import { ROUTES } from '@/constants/routes';
 
 const resetPasswordSchema = z
@@ -21,9 +22,6 @@ const resetPasswordSchema = z
   });
 
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
-
-const linkClassName =
-  'text-[13px] font-medium leading-none text-text-link no-underline hover:underline';
 
 export function ResetPasswordForm() {
   const navigate = useNavigate();
@@ -47,9 +45,7 @@ export function ResetPasswordForm() {
     return (
       <>
         <p className="m-0">This reset link is incomplete. Request a new one.</p>
-        <Link to={ROUTES.FORGOT_PASSWORD} className={linkClassName}>
-          Request a new reset link
-        </Link>
+        <TextLink to={ROUTES.FORGOT_PASSWORD}>Request a new reset link</TextLink>
       </>
     );
   }
@@ -58,9 +54,7 @@ export function ResetPasswordForm() {
     return (
       <>
         <p className="m-0">This reset link is invalid or has expired.</p>
-        <Link to={ROUTES.FORGOT_PASSWORD} className={linkClassName}>
-          Request a new reset link
-        </Link>
+        <TextLink to={ROUTES.FORGOT_PASSWORD}>Request a new reset link</TextLink>
       </>
     );
   }
@@ -88,7 +82,7 @@ export function ResetPasswordForm() {
   return (
     <form noValidate onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
       {isStatus(error, 429) ? (
-        <Alert tone="danger">{tooManyRequestsMessage(getRetryAfterSeconds(error))}</Alert>
+        <Alert tone="danger">{getTooManyRequestsMessage(error)}</Alert>
       ) : error && !isPasswordRuleError ? (
         <Alert tone="danger">Something went wrong. Try again.</Alert>
       ) : null}
@@ -119,10 +113,4 @@ export function ResetPasswordForm() {
       </Button>
     </form>
   );
-}
-
-function tooManyRequestsMessage(seconds: number | undefined): string {
-  return seconds === undefined
-    ? 'Too many requests. Try again in a minute.'
-    : `Too many requests. Try again in ${seconds} seconds.`;
 }

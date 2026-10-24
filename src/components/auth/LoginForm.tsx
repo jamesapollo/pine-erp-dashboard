@@ -1,12 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import { useSignInMutation } from '@/hooks/api/mutations/auth/useSignInMutation';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { TextLink } from '@/components/ui/TextLink';
 import { getFieldError, getRetryAfterSeconds, isStatus } from '@/utils/apiErrors';
 import { emailSchema } from '@/utils/emailSchema';
 import { getSafeRedirectPath } from '@/utils/safeRedirect';
@@ -74,12 +75,7 @@ export function LoginForm() {
           {...register('password')}
         />
         <div className="flex justify-end">
-          <Link
-            to={ROUTES.FORGOT_PASSWORD}
-            className="text-[13px] font-medium leading-none text-text-link no-underline hover:underline"
-          >
-            Forgot password?
-          </Link>
+          <TextLink to={ROUTES.FORGOT_PASSWORD}>Forgot password?</TextLink>
         </div>
         <Button
           variant="primary"
