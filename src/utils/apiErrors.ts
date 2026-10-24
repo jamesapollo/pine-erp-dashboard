@@ -1,0 +1,19 @@
+import { isAxiosError } from 'axios';
+
+import { type ValidationErrorBody } from '@/types/apiErrors';
+
+export function isStatus(error: unknown, status: number): boolean {
+  return isAxiosError(error) && error.response?.status === status;
+}
+
+export function getFieldError(error: unknown, field: string): string | undefined {
+  if (!isAxiosError<Partial<ValidationErrorBody>>(error)) return undefined;
+  return error.response?.data?.errors?.[field]?.[0];
+}
+
+export function getRetryAfterSeconds(error: unknown): number | undefined {
+  if (!isAxiosError(error)) return undefined;
+  const value: unknown = error.response?.headers?.['retry-after'];
+  if (typeof value !== 'string' || !/^\d+$/.test(value.trim())) return undefined;
+  return Number.parseInt(value, 10);
+}
