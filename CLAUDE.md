@@ -1,4 +1,4 @@
-# EPR Dashboard App — Codebase Conventions
+# Commerce ERP Dashboard — Codebase Conventions
 
 A reference guide for developers working on this codebase. Covers architecture, patterns, naming, tooling, and testing conventions observed throughout the project.
 
@@ -38,17 +38,14 @@ A reference guide for developers working on this codebase. Covers architecture, 
 
 ```
 src/
-├── components/     # UI components organised by feature area
-├── context/        # React Context providers
+├── components/     # UI components: ui/ (primitives), auth/, layout/
+├── constants/      # Global constants (UPPER_CASE exports), e.g. routes.ts
 ├── hooks/          # Custom hooks (generic + API-specific)
-├── types/          # TypeScript type definitions (domain-organised)
-├── utils/          # Pure utility functions
 ├── pages/          # Page-level route components
-├── i18n/           # i18next translations and setup
-├── constants/      # Global constants (UPPER_CASE exports)
+├── styles/tokens/  # Design-token CSS copied verbatim from the Commerce ERP design system
 ├── tests/          # Test infra, fixtures, MSW handlers
-├── definitions/    # Ambient type definitions
-└── vendor/         # Pinned third-party code
+├── types/          # TypeScript type definitions
+└── utils/          # Pure utility functions
 ```
 
 ### Key principles
@@ -56,7 +53,7 @@ src/
 - **API-first**: All server communication lives in `/hooks/api/`.
 - **Domain-organised types**: `/types/` mirrors the API schema structure.
 - **Centralised query config**: A single `QueryClient` in `/utils/queryClient.ts`.
-- **Context for cross-cutting state**: Theme, session, page navigation, and messaging each have their own context module.
+- **Session from the server**: the signed-in user comes from `useSession()`, which reads `GET /api/v1/me`. Nothing about auth is kept in browser storage.
 
 ---
 
@@ -66,30 +63,20 @@ src/
 
 ```
 components/
-├── views/                  # Feature-specific view types (Form, Table, Report, …)
-├── layout/                 # Page and app-shell layout wrappers
-├── errors/                 # Error boundary and fallback UI
-├── custom-code/            # Custom code execution sandbox
-├── main-navigation/        # Top-level navigation
-├── skeletons/              # Loading skeleton components
-├── knack-date-picker/      # Encapsulated date-picker library
-├── knack-internals/        # Builder ↔ app iframe bridge
-└── [root level]            # Shared components (AppLogo, Breadcrumbs, …)
+├── ui/        # Design-system primitives (Button, Input, Card, Alert, Icon, …)
+├── auth/      # Sign-in, forgot/reset forms, ProtectedRoute, GuestRoute
+└── layout/    # AuthLayout and the signed-in AppShell (Sidebar, Topbar)
 ```
 
 ### Co-location rules
 
 - A component's closely related utilities, sub-components, and tests live in the **same folder**.
-- Deep input components nest their transformers in a `transformers/` subfolder.
 - Heavy third-party integrations get a `*Lazy.tsx` sibling that wraps `React.lazy`.
 
 ```
-views/form/inputs/date-time/
-├── DateTimeInput.tsx
-├── DateTimeInput.spec.tsx
-└── transformers/
-    ├── DateTimeFormatToLuxonFormat.ts
-    └── DateTimeFormatToLuxonFormat.spec.ts
+components/ui/
+├── Button.tsx
+└── Button.spec.tsx
 ```
 
 - No `index.ts` barrel files for components — import directly from the component file.
@@ -100,44 +87,44 @@ views/form/inputs/date-time/
 
 ### Files
 
-| Kind                  | Convention                                              | Example                                  |
-| --------------------- | ------------------------------------------------------- | ---------------------------------------- |
-| React component       | PascalCase                                              | `LoginFormContent.tsx`                   |
-| Lazy-loaded component | PascalCase + `Lazy` suffix                              | `AddressGoogleAutocompleteInputLazy.tsx` |
-| Context module        | PascalCase + `Context` suffix                           | `PageContext.tsx`                        |
-| Hook                  | camelCase, `use` prefix                                 | `useContainerQuery.ts`                   |
-| Utility               | camelCase                                               | `axiosConfig.ts`, `tokenUtils.ts`        |
-| Type file             | PascalCase for schema types, camelCase for domain types | `LiveAppPage.ts`, `session.ts`           |
-| Constant file         | camelCase                                               | `routes.ts`                              |
-| Test                  | same name as subject + `.spec.tsx`                      | `LoginForm.spec.tsx`                     |
+| Kind                  | Convention                         | Example                            |
+| --------------------- | ---------------------------------- | ---------------------------------- |
+| React component       | PascalCase                         | `LoginForm.tsx`                    |
+| Lazy-loaded component | PascalCase + `Lazy` suffix         | `ChartLazy.tsx`                    |
+| Context module        | PascalCase + `Context` suffix      | `FooContext.tsx`                   |
+| Hook                  | camelCase, `use` prefix            | `useSession.ts`                    |
+| Utility               | camelCase                          | `axiosConfig.ts`, `emailSchema.ts` |
+| Type file             | camelCase                          | `session.ts`, `apiErrors.ts`       |
+| Constant file         | camelCase                          | `routes.ts`                        |
+| Test                  | same name as subject + `.spec.tsx` | `LoginForm.spec.tsx`               |
 
 ### Components
 
 - Always **PascalCase**.
-- Name reflects role: `PageLayout`, `RouterErrorBoundary`, `ResetPasswordWrapper`.
-- Provider components: `*Provider` (e.g., `PageContextProvider`).
+- Name reflects role: `AppShell`, `ProtectedRoute`, `ResetPasswordForm`.
+- Provider components: `*Provider` (e.g., `FooContextProvider`).
 
 ### Hooks
 
 - Always `use*` prefix.
-- Query hooks: `use*Query` (e.g., `useApplicationQuery`, `useTableQuery`).
-- Mutation hooks: `use*Mutation` (e.g., `useAddRecordMutation`, `useSignInMutation`).
-- Helper hooks: descriptive without suffix (e.g., `useMenuLinkPagePath`, `useCriteriaRules`).
+- Query hooks: `use*Query` (e.g., `useMeQuery`).
+- Mutation hooks: `use*Mutation` (e.g., `useSignInMutation`, `useSignOutMutation`).
+- Helper hooks: descriptive without suffix (e.g., `useSession`, `useSignOut`).
 
 ### Types and interfaces
 
-| Pattern       | Example                                     |
-| ------------- | ------------------------------------------- |
-| Domain entity | `Session`, `LiveAppPage`                    |
-| Form data     | `LoginFormData`                             |
-| API params    | `SignInMutationParams`                      |
-| API response  | `SignInResponse`                            |
-| Context state | `PageContextState`, `MessagingContextValue` |
+| Pattern       | Example                                  |
+| ------------- | ---------------------------------------- |
+| Domain entity | `Session`, `User`, `Membership`          |
+| Form data     | `LoginFormData`                          |
+| API params    | `SignInMutationParams`                   |
+| API response  | `User` (unwrapped from `{ data: User }`) |
+| Context state | `FooContextState`                        |
 
 ### Variables and booleans
 
 - `camelCase` throughout.
-- Booleans: `is*`, `has*`, `should*` — e.g., `isSubmitting`, `hasSignupButtons`, `shouldUseBearerAuth`.
+- Booleans: `is*`, `has*`, `should*` — e.g., `isSubmitting`, `hasMemberships`, `shouldRetry`.
 - Callbacks: `on*` — e.g., `onSubmit`, `onPlaceSelected`, `onError`.
 
 ### Full semantic words — no abbreviations
@@ -209,9 +196,9 @@ Four layers, each with a defined scope:
 | Layer            | Library              | Scope                                         |
 | ---------------- | -------------------- | --------------------------------------------- |
 | Server state     | TanStack React Query | API responses, caching, background sync       |
-| App/UI state     | React Context API    | Session, theme, page nav, messaging           |
+| App/UI state     | React Context API    | Cross-cutting UI state only (none yet)        |
 | Form state       | React Hook Form      | Per-form field values, validation, submission |
-| Persistent state | `localStorage`       | Refresh token (keyed by app ID)               |
+| Persistent state | none                 | No auth data in browser storage               |
 
 ### React Query config (`/src/utils/queryClient.ts`)
 
@@ -230,17 +217,17 @@ new QueryClient({
 
 ### Context pattern
 
-Every context module exports exactly three things:
+Every context module exports a provider and a consumer hook:
 
 ```typescript
 // 1. Provider component
-export function PageContextProvider({ children }: Props) {
+export function FooContextProvider({ children }: Props) {
   const value = useMemo(() => ({ … }), [deps]);
-  return <PageContext.Provider value={value}>{children}</PageContext.Provider>;
+  return <FooContext.Provider value={value}>{children}</FooContext.Provider>;
 }
 
 // 2. Consumer hook
-export const usePageContext = () => useContext(PageContext);
+export const useFooContext = () => useContext(FooContext);
 
 // (The context object itself is not exported — consume only via the hook)
 ```
@@ -265,29 +252,15 @@ into a shared file speculatively.
 ```
 src/hooks/
 ├── api/
-│   ├── queryKeys.ts           # centralised key registry
-│   ├── auth/                  # legacy split-pattern feature (grandfathered, see below)
-│   │   └── authApi.ts         #   signUp, signIn, getMe, refresh (over axiosInstance)
-│   ├── workers/
-│   │   └── workersApi.ts
-│   ├── queries/
-│   │   ├── auth/useMeQuery.ts
-│   │   ├── workers/useWorkersQuery.ts
-│   │   └── applications/useApplicationChecklistQuery.ts   # new convention: fetcher + hook, one file
-│   └── mutations/
-│       ├── auth/              # useSignUpMutation, useSignInMutation, useSignOutMutation
-│       └── applications/useStartReviewMutation.ts          # new convention: fetcher + hook, one file
-├── helpers/                   # helper hooks co-located with their feature
-└── [root]                     # generic reusable hooks (useSession, useDebounce, …)
+│   ├── queryKeys.ts                          # centralised key registry
+│   ├── queries/auth/useMeQuery.ts            # fetcher + hook, one file
+│   └── mutations/auth/                       # useSignInMutation, useSignOutMutation,
+│                                             # useForgotPasswordMutation, useResetPasswordMutation
+├── useSession.ts                             # the session union, derived from useMeQuery
+└── useSignOut.ts                             # sign-out action shared by the shell
 ```
 
-**Legacy split pattern (grandfathered, do not extend):** some existing features (`auth/authApi.ts`,
-`workers/workersApi.ts`, and the pre-existing `applications/applicationsApi.ts` functions —
-`listShiftApplications`, `acceptApplication`, `rejectApplication`) still keep plain API functions in a separate
-`api/<feature>/<feature>Api.ts` file, imported by their query/mutation hook. These are not being migrated
-proactively — leave them as-is unless you're already rewriting that specific hook for another reason. Do not add
-new functions to an existing `<feature>Api.ts` file; new hooks (even within an otherwise-legacy feature) follow the
-self-contained convention above.
+There is no separate `<feature>Api.ts` file. Add a new fetcher next to the hook that uses it.
 
 Naming: `use*Query` / `use*Mutation`. Fetcher functions go through the single configured `axiosInstance`
 (`/utils/axiosConfig.ts`) and return domain types — never call `fetch`/`axios` directly from a component.
@@ -298,10 +271,7 @@ All keys live in `/hooks/api/queryKeys.ts` as a `const` object. Never inline a k
 
 ```typescript
 export const queryKeys = {
-  application: "application",
-  session: "session",
-  table: "table",
-  auth: { session: "session" },
+  me: ['me'],
 } as const;
 ```
 
@@ -312,54 +282,31 @@ so the options can be reused with `queryClient.fetchQuery` / `prefetchQuery`. Un
 convention, the fetcher function lives in the same file:
 
 ```typescript
-// useApplicationChecklistQuery.ts — fetcher + hook, one file
-async function getApplicationChecklist(
-  applicationId: string,
-): Promise<ApplicationChecklist> {
-  const { data } = await axiosInstance.get(
-    `/applications/${applicationId}/checklist`,
-  );
-  return data;
+// useMeQuery.ts — fetcher + hook, one file
+export async function getMe(): Promise<User | null> {
+  try {
+    const { data } = await axiosInstance.get<{ data: User }>('/api/v1/me');
+    return data.data;
+  } catch (error) {
+    // 401 is a normal answer here: nobody is signed in.
+    if (axios.isAxiosError(error) && error.response?.status === 401) return null;
+    throw error;
+  }
 }
 
-export function applicationChecklistQueryOptions(applicationId: string) {
-  return queryOptions({
-    queryKey: queryKeys.applications.checklist(applicationId),
-    queryFn: () => getApplicationChecklist(applicationId),
-  });
+export function meQueryOptions() {
+  return queryOptions({ queryKey: queryKeys.me, queryFn: getMe });
 }
 
-export function useApplicationChecklistQuery(applicationId: string) {
-  return useQuery(applicationChecklistQueryOptions(applicationId));
+export function useMeQuery() {
+  return useQuery(meQueryOptions());
 }
 ```
-
-(The legacy split pattern looks the same except `queryFn` imports its fetcher — e.g. `getMe` — from a separate
-`<feature>Api.ts` file instead of defining it locally; see `useMeQuery.ts` for an existing example.)
 
 ### Hook shape — mutations
 
-```typescript
-// useStartReviewMutation.ts — fetcher + hook, one file
-async function startReview(applicationId: string) {
-  const { data } = await axiosInstance.post(
-    `/applications/${applicationId}/start-review`,
-  );
-  return data;
-}
-
-export function useStartReviewMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: startReview,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [queryKeys.viewData] });
-    },
-  });
-}
-```
-
-Additional local state (e.g., 2FA step) is added to the mutation hook and spread-merged with the result object.
+Look at `useSignInMutation.ts` for the reference shape: `ensureCsrfCookie()`, then the POST, then on success
+`queryClient.setQueryData(queryKeys.me, …)` or `invalidateQueries({ queryKey: queryKeys.me })`.
 
 ---
 
@@ -371,39 +318,29 @@ Additional local state (e.g., 2FA step) is added to the mutation hook and spread
 - **Axios** — single configured instance at `/utils/axiosConfig.ts`.
 - No direct `fetch` or `useEffect`-based data loading.
 
-### Axios instance
+### Cookie-session contract
+
+Auth is the Laravel Sanctum cookie session. The dashboard and the API share one origin: in production the build is
+served from the API's `public/admin/`, and in development the Vite dev server proxies to the API (see the README).
 
 ```typescript
 export const axiosInstance = axios.create({
-  baseURL: import.meta.env.PUBLIC_API_URL,
-  headers: {
-    'x-knack-rest-api-key': 'renderer',
-    'x-knack-live-app-version': 'v4',
-    …getClientTimezoneHttpHeader()
-  }
+  baseURL: '',
+  withCredentials: true,
+  withXSRFToken: true,
+  headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
 });
 ```
 
-**Request interceptor** adds auth headers (Bearer token for custom-domain / embed scenarios).
-
-**Response interceptors** handle:
-
-- `401` — classify terminal vs. recoverable; terminal errors redirect to fallback URL.
-- `403` — clear stored tokens and sign out.
-- Network errors — log to LogRocket with classification.
-
-### Authentication tokens
-
-| Token               | Storage        | Reason                        |
-| ------------------- | -------------- | ----------------------------- |
-| Auth (access) token | Memory only    | Cannot be exfiltrated via XSS |
-| Refresh token       | `localStorage` | Survives page reload          |
-
-Concrete contract (see `/utils/tokenUtils.ts` + `/utils/axiosConfig.ts`): the request interceptor attaches the
-in-memory access token; the response interceptor, on `401`, calls `/auth/refresh` **once** — guarded by a single
-shared in-flight refresh promise so concurrent 401s don't stampede — then retries the original request; on refresh
-failure it clears tokens (session drops to anonymous); `403` clears tokens. The access token never goes to
-`localStorage`.
+- Same origin, so `baseURL` is empty and there is no environment variable for the API address.
+- `withCredentials` and `withXSRFToken` send the session cookie and the `X-XSRF-TOKEN` header.
+- `ensureCsrfCookie()` (`GET /sanctum/csrf-cookie`) runs before login, logout, forgot-password and reset-password.
+- A `419` response triggers `ensureCsrfCookie()` and a **single** retry of the original request.
+- `401` means signed out. The interceptor calls the handler registered with `setUnauthenticatedHandler`, except for
+  `/api/v1/me` and `/logout`, where a 401 is an expected answer.
+- `403` means the user lacks a permission. It is not a sign-out; show a permission message.
+- There are no tokens, no `Authorization` header and no refresh flow. The session cookie is `HttpOnly`, so the app
+  can never read it, and nothing about auth goes in `localStorage` or `sessionStorage`.
 
 ---
 
@@ -411,24 +348,38 @@ failure it clears tokens (session drops to anonymous); `403` clears tokens. The 
 
 ### Library
 
-React Router DOM v6 — `createBrowserRouter` with a `basename` derived from the account/app slugs.
+React Router DOM v6 — `createBrowserRouter` with basename `/`. The build is served under `/admin/` in production
+by the API, which rewrites the app's paths to `index.html`; Vite's `base` only affects asset URLs.
 
 ### Route definition (`/src/Router.tsx`)
 
 ```typescript
 export const routes: RouteObject[] = [
   {
-    element: <RouterErrorBoundary><App /></RouterErrorBoundary>,
+    element: <App />,
     children: [
       {
-        element: <PageLayout />,
+        element: <GuestRoute />,
         children: [
-          { path: ROUTES.CATCH_ALL, element: <Page /> },
-          { path: ROUTES.RESET_PASSWORD, element: <ResetPasswordWrapper /> }
-        ]
-      }
-    ]
-  }
+          { path: ROUTES.LOGIN, element: <LoginPage /> },
+          { path: ROUTES.FORGOT_PASSWORD, element: <ForgotPasswordPage /> },
+        ],
+      },
+      { path: ROUTES.RESET_PASSWORD, element: <ResetPasswordPage /> },
+      {
+        element: <ProtectedRoute />,
+        children: [
+          {
+            element: <AppShell />,
+            children: [
+              { index: true, element: <OverviewPage /> },
+              { path: ROUTES.CATCH_ALL, element: <NotFoundPage /> },
+            ],
+          },
+        ],
+      },
+    ],
+  },
 ];
 ```
 
@@ -437,32 +388,53 @@ export const routes: RouteObject[] = [
 ```typescript
 // src/constants/routes.ts
 export const ROUTES = {
-  ROOT: "/",
-  RESET_PASSWORD: "/knack-password/reset/:token",
-  CATCH_ALL: "*",
+  ROOT: '/',
+  LOGIN: '/login',
+  FORGOT_PASSWORD: '/forgot-password',
+  RESET_PASSWORD: '/reset-password',
+  CATCH_ALL: '*',
 } as const;
 ```
 
-### Page navigation
-
-Dynamic page slugs are not registered as explicit routes. `PageContext` reads URL segments from `useLocation` and resolves the current page via application metadata returned by the API.
+Never write a path string inline; use `ROUTES`. There is no sign-up route: staff accounts are created by an
+administrator.
 
 ### Do not mock routing primitives
 
 `useNavigate`, `useLocation`, `useParams` must never be mocked in tests. Use `customRenderAtRoute` and assert on `router.state.location` instead.
 
-### Session & protected routing (tenant identity from the token, not the URL)
+### Session and protected routing (store identity from the session, not the URL)
 
-Routes are plain app paths (`/login`, `/signup`, `/dashboard`) — **no company/tenant identifier in the URL**. The
-access token carries the tenant (`companyId`); the backend resolves it from the token. Never put a tenant id in a
-route or trust one from the URL.
+Routes carry no store or tenant identifier. The backend resolves the user from the session cookie, and the app reads
+the active store from the session. Never put a store id in a route or trust one from the URL.
 
-- **Session source of truth:** `useSession()` (`/hooks/useSession.ts`) derives `{ status: 'loading'|'authed'|'anon',
-user, company }` from `useMeQuery()`. Read identity (current company/user) from it — don't prop-drill or hardcode.
-- **Guarding:** a `ProtectedRoute` reads `useSession()` and redirects to `/login` when `anon`, renders a spinner while
-  `loading`, and `<Outlet/>` when `authed`. `LoginRoute`/`SignupRoute` redirect to `/dashboard` when already authed.
-- **Auth actions** are mutations (`useSignUpMutation` / `useSignInMutation` / `useSignOutMutation`): on success they
-  store tokens and invalidate/seed the `me` query; sign-out clears tokens + `queryClient.clear()`.
+`useSession()` (`/hooks/useSession.ts`) derives a discriminated union from `useMeQuery()`:
+
+```typescript
+type Session =
+  | { status: 'loading' }
+  | { status: 'error'; retry: () => void }
+  | { status: 'anon' }
+  | { status: 'no-store'; user: User }
+  | {
+      status: 'authed';
+      user: User;
+      store: StoreSummary;
+      roles: string[];
+      permissions: string[];
+      hasPermission: (slug: string) => boolean;
+    };
+```
+
+- The active store is the user's **first membership**. Only `useSession` may assume that; everything else reads
+  `store`, `roles` and `permissions` from the session.
+- `ProtectedRoute` (`components/auth/ProtectedRoute.tsx`) shows a status screen while `loading`, a retry screen on
+  `error`, redirects `anon` to `ROUTES.LOGIN`, shows a no-access screen for `no-store`, and renders `<Outlet />` when
+  `authed`.
+- `GuestRoute` (`components/auth/GuestRoute.tsx`) redirects an `authed` user to `ROUTES.ROOT`.
+- Auth actions are mutations (`useSignInMutation`, `useSignOutMutation`, `useForgotPasswordMutation`,
+  `useResetPasswordMutation`). Sign-in seeds or invalidates the `me` query; sign-out (`useSignOut`) clears the query
+  cache.
 
 ---
 
@@ -472,44 +444,22 @@ user, company }` from `useMeQuery()`. Read identity (current company/user) from 
 
 All styling is applied via Tailwind utility classes directly on JSX elements.
 
-```typescript
-<div className="mb-8 flex flex-col items-center justify-center space-y-2">
-  <h2 className="text-2xl font-medium text-emphasis">{view.title}</h2>
-</div>
-```
-
 ### Design system
 
-`@knack/asterisk-react` provides the base component library and Tailwind preset. The local `tailwind.config.ts` extends it:
-
-```typescript
-import { defaultPreset } from "@knack/asterisk-react";
-
-export default {
-  presets: [defaultPreset],
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-    "node_modules/@knack/asterisk-react/dist/…",
-  ],
-  theme: {
-    extend: {
-      spacing: { "4.5": "1.125rem", "15": "3.75rem" },
-      screens: { md: "769px" },
-    },
-  },
-};
-```
+Design tokens come from the Commerce ERP design system. `src/styles/tokens/*.css` are verbatim copies of the
+design-system token files (colour, spacing, typography, effects); do not hand-edit them, and they are excluded from
+Prettier in `.prettierignore`. `tailwind.config.ts` maps those tokens into the Tailwind theme, so components use
+semantic classes rather than raw values. Primitives live in `src/components/ui/`. Fonts come from the `@fontsource`
+packages (`@fontsource-variable/plus-jakarta-sans`, `@fontsource/jetbrains-mono`), not a CDN.
 
 ### Class name utilities
 
-| Library                    | Usage                           |
-| -------------------------- | ------------------------------- |
-| `clsx`                     | Conditional class lists         |
-| `tailwind-merge`           | Merge classes without conflicts |
-| `class-variance-authority` | Typed component variant APIs    |
+| Library                    | Usage                        |
+| -------------------------- | ---------------------------- |
+| `clsx` + `tailwind-merge`  | `cn()` in `/utils/cn.ts`     |
+| `class-variance-authority` | Typed component variant APIs |
 
-No CSS Modules, Styled Components, or Emotion. No inline `style` objects except where Tailwind cannot reach (e.g., dynamic hex colour values).
+No CSS Modules, Styled Components, or Emotion. No inline `style` objects except where Tailwind cannot reach.
 
 ---
 
@@ -517,7 +467,7 @@ No CSS Modules, Styled Components, or Emotion. No inline `style` objects except 
 
 ### tsconfig
 
-Extends `@knack/tooling-dev-typescript-config`. Key additions:
+Key settings:
 
 ```json
 {
@@ -533,36 +483,27 @@ Extends `@knack/tooling-dev-typescript-config`. Key additions:
 
 ```
 src/types/
-├── schema/
-│   ├── fields/      # One file per field type (EmailField.ts, AddressField.ts, …)
-│   ├── views/       # One file per view type (LoginView.ts, TableView.ts, …)
-│   ├── LiveAppPage.ts
-│   └── LiveAppApplication.ts
 ├── apiErrors.ts
-├── auth.ts
 └── session.ts
 ```
-
-Field and view type directories use barrel `index.ts` files for re-exports.
 
 ### Discriminated unions for API responses
 
 ```typescript
-export type SignInResponse =
-  | { type: "session"; session: Session }
-  | { type: "password_reset"; password_reset_url: string };
+export type Session =
+  { status: 'loading' } | { status: 'anon' } | { status: 'authed'; user: User /* … */ };
 ```
 
 ### `as const` for constant objects
 
 ```typescript
 export const ROUTES = { ROOT: '/', … } as const;
-export const queryKeys = { application: 'application', … } as const;
+export const queryKeys = { me: ['me'] } as const;
 ```
 
 ### Avoid `any`
 
-Use `unknown` at system boundaries and narrow with type guards. The extended tsconfig enforces strict mode.
+Use `unknown` at system boundaries and narrow with type guards. `strict` is on.
 
 ---
 
@@ -582,7 +523,7 @@ const {
   formState: { errors },
 } = useForm<LoginFormData>({
   resolver: zodResolver(loginSchema),
-  mode: "onBlur",
+  mode: 'onBlur',
 });
 ```
 
@@ -604,15 +545,11 @@ const {
 
 ### Error display
 
-Always use the shared `FormErrorMessage` component. Never write inline error JSX.
+Always use the shared `FormErrorMessage` component. Never write inline error JSX. Validation messages come from
+the Zod schema; server validation messages (the API's 422 body) are mapped with `getFieldError` and shown as-is.
 
 ```typescript
-<FormErrorMessage
-  errors={errors}
-  name={input.field.key}
-  inputLabel={input.label}
-  id={`${view.key}-${input.id}-error`}
-/>
+<FormErrorMessage id="email-error" message={errors.email?.message} />
 ```
 
 ### Nested forms
@@ -625,42 +562,24 @@ Always use the shared `FormErrorMessage` component. Never write inline error JSX
 
 ### Error boundaries
 
-`react-error-boundary` is used with `FallbackComponent` props. Three boundaries exist:
-
-| Boundary                  | Scope                         |
-| ------------------------- | ----------------------------- |
-| `RouterErrorBoundary`     | Whole app (wraps router)      |
-| `PageEditorErrorBoundary` | Builder preview iframe        |
-| Per-view boundaries       | Individual view render errors |
-
-```typescript
-<ErrorBoundary
-  FallbackComponent={ErrorFallback}
-  onReset={() => window.location.reload()}
-  onError={(error, info) => {
-    addReactError(sanitizeErrorForTracking(error), info);
-  }}
->
-  {children}
-</ErrorBoundary>
-```
+Not used so far. Render failures surface through React's default behaviour; add a boundary when a screen needs one.
 
 ### API error handling
 
-- Mutation `onError` callbacks receive typed `AxiosError` and branch on status code.
+- Mutation callbacks and `onError` receive `AxiosError`; branch with the helpers in `/utils/apiErrors.ts`
+  (`isStatus`, `getFieldError`, `getRetryAfterSeconds`, `getTooManyRequestsMessage`).
 - Error shapes are defined in `/types/apiErrors.ts`.
-- `401` terminal errors (trial expired, account suspended) redirect externally; others propagate.
+- `401` is handled once, centrally, by the Axios interceptor (see §7). `419` is retried once there.
+- Never reveal whether an email exists. Show the API's single login `422` message as-is, and show the same
+  confirmation for every forgot-password `204`.
 
 ### Error logging
 
-- **Datadog** (`addReactError`): Captures React errors with component tree context.
-- **LogRocket**: Session replay; errors sanitized before sending, authenticated users excluded.
+None. No Datadog, LogRocket, Flagsmith or other third-party tracking is used.
 
 ---
 
 ## 13. Testing
-
-> The primary testing philosophy is captured in `docs/testing.md`. This section complements it with quick-reference patterns.
 
 ### Stack
 
@@ -671,56 +590,54 @@ Always use the shared `FormErrorMessage` component. Never write inline error JSX
 
 ### Test file locations
 
-| Kind                  | Location                         | Example                                         |
-| --------------------- | -------------------------------- | ----------------------------------------------- |
-| Feature / integration | `src/tests/features/<Feature>/`  | `src/tests/features/FormView/FormView.spec.tsx` |
-| Hook unit test        | Co-located next to the hook      | `useMenuLinkPagePath.spec.tsx`                  |
-| Component render test | Co-located next to the component | `LoginFormContent.spec.tsx`                     |
+| Kind                  | Location                         | Example                                   |
+| --------------------- | -------------------------------- | ----------------------------------------- |
+| Feature / integration | `src/tests/features/<Feature>/`  | `src/tests/features/Login/Login.spec.tsx` |
+| Hook unit test        | Co-located next to the hook      | `useSession.spec.tsx`                     |
+| Component render test | Co-located next to the component | `Button.spec.tsx`                         |
 
 ### Custom render helpers (`src/tests/customRender.tsx`)
 
-| Helper                             | Use                                               |
-| ---------------------------------- | ------------------------------------------------- |
-| `customRenderAtRoute({ url })`     | Full app with routing, React Query, all providers |
-| `customRender(children)`           | React Query + providers, no routing               |
-| `customRenderWithoutApp(children)` | Tooltip.Provider only                             |
+| Helper                         | Use                                                                    |
+| ------------------------------ | ---------------------------------------------------------------------- |
+| `customRenderAtRoute({ url })` | Full app: memory router over the real routes, React Query              |
+| `customRender(children)`       | React Query only, no routing                                           |
+| `buildTestQueryClient()`       | A query client with the app's defaults, for tests that build their own |
 
-`url` is relative to the app basename (`/testing-account/testing-app`). Pass `'/'` or `'/donations'`.
+There is no router basename in tests (the app basename is `/`). Pass `url` as the app path: `'/'`, `'/login'`,
+`'/reset-password?token=…'`. Fixtures live in `src/tests/fixtures/` (`buildUserFixture` for a `User` with a
+membership), and the MSW endpoint paths in `src/tests/mocks/endpoints.ts` (`mockEndpoints`).
 
 ### Waiting for hydration
 
+`useSession` starts as `loading`, so wait for a sentinel before asserting.
+
 ```typescript
-const { router } = customRenderAtRoute({ url: "/donations" });
-expect(await screen.findByText("Testing App")).toBeVisible(); // sentinel
-// Now safe to make synchronous assertions
-expect(screen.getByText("Donations")).toBeVisible();
+server.use(http.get(mockEndpoints.me, () => HttpResponse.json({ data: buildUserFixture() })));
+const { router } = customRenderAtRoute({ url: '/' });
+expect(await screen.findByRole('heading', { name: 'Overview' })).toBeVisible();
 ```
 
 ### Navigation assertions
 
 ```typescript
-import { TESTING_ROUTER_BASE_NAME } from "@/tests/fixtures/constants";
-
 await waitFor(() => {
-  expect(router.state.location.pathname).toBe(
-    `${TESTING_ROUTER_BASE_NAME}/destination`,
-  );
+  expect(router.state.location.pathname).toBe('/login');
 });
 ```
 
 ### MSW overrides
 
 ```typescript
-beforeEach(() => {
+it('shows the sign-in error', async () => {
   server.use(
-    http.get(mockEndpoints.getLiveAppInitialization, () =>
-      HttpResponse.json(buildLiveAppInitializationFixture({ … }))
-    )
+    http.post(mockEndpoints.login, () =>
+      HttpResponse.json(
+        { message: 'Invalid.', errors: { email: ['These credentials do not match.'] } },
+        { status: 422 },
+      ),
+    ),
   );
-});
-
-it('shows error state', () => {
-  server.use(http.get(mockEndpoints.getRecords, () => HttpResponse.error()));
   // …
 });
 ```
@@ -728,8 +645,8 @@ it('shows error state', () => {
 ### What must not be mocked
 
 - `useNavigate`, `useLocation`, `useParams` — use `customRenderAtRoute` instead.
-- `useViewContext`, `usePageContext`, data query hooks — let MSW populate them.
-- Anything already mocked in `setupTest.ts` (`@tanstack/react-virtual`, LogRocket, Flagsmith).
+- `useSession`, `useMeQuery` and other data hooks — let MSW populate them.
+- `axiosInstance` — intercept at the network with MSW.
 
 ---
 
@@ -737,12 +654,7 @@ it('shows error state', () => {
 
 ### Lazy loading
 
-Heavy leaf components have a `*Lazy.tsx` sibling using `React.lazy`:
-
-```
-AddressGoogleAutocompleteInput.tsx
-AddressGoogleAutocompleteInputLazy.tsx   ← dynamic import
-```
+Heavy leaf components get a `*Lazy.tsx` sibling using `React.lazy`. None exist yet.
 
 ### Memoisation
 
@@ -753,10 +665,6 @@ AddressGoogleAutocompleteInputLazy.tsx   ← dynamic import
 ### React Query cache defaults
 
 `staleTime: Infinity` means data never goes stale automatically. Freshness is managed by explicit `queryClient.invalidateQueries()` calls after mutations.
-
-### Virtualisation
-
-`@tanstack/react-virtual` is used inside Table, Report, and Search views for long lists.
 
 ---
 
@@ -771,34 +679,22 @@ hooks/api/
 └── queryKeys.ts       # Centralised key registry
 
 utils/
-├── axiosConfig.ts     # Configured axios instance + interceptors
-└── tokenUtils.ts      # Token read/write/refresh helpers
+├── axiosConfig.ts     # axiosInstance, ensureCsrfCookie, setUnauthenticatedHandler, interceptors
+├── apiErrors.ts       # status and field-error helpers
+└── queryClient.ts     # the single QueryClient
 ```
-
-A handful of older features still keep their fetchers in a separate `hooks/api/<feature>/<feature>Api.ts` file
-(grandfathered — see §6, "Where hooks live"). New hooks always define their fetcher inline.
 
 ### Axios instance features
 
-- **`x-knack-rest-api-key: renderer`** and **`x-knack-live-app-version: v4`** on every request.
-- **Bearer auth** injected for custom-domain / embed deployments.
-- **Read/write base URL splitting** for scale-out (reads vs. writes to different endpoints).
-- **Automatic token refresh** when the access token is within 30 s of expiry.
+See §7 for the cookie-session contract (same origin, `withCredentials` and `withXSRFToken`, `ensureCsrfCookie`,
+one 419 retry, 401 and 403 meaning). The API wraps resources as `{ data: … }`; fetchers unwrap that and return
+domain types.
 
 ### API function shape
 
-Whether the fetcher lives inline in a query/mutation hook file (current convention) or in a legacy
-`<feature>Api.ts`, the shape is the same: a strongly-typed async function translating the raw API response into a
-domain type.
-
 ```typescript
-// returns a strongly-typed result, translating raw API shapes to domain types
-export async function signIn(params: SignInMutationParams): Promise<SignInResponse> {
-  const { data } = await axiosInstance.post('/v1/live-app/session', params, { … });
-  return data.password_reset_url
-    ? { type: 'password_reset', password_reset_url: data.password_reset_url }
-    : { type: 'session', session: data.session };
-}
+// returns a strongly-typed result; a 401 from /me is "nobody signed in", not an error
+export async function getMe(): Promise<User | null> { … }
 ```
 
 ---
@@ -807,29 +703,8 @@ export async function signIn(params: SignInMutationParams): Promise<SignInRespon
 
 ### Environment variables
 
-- Vite `envPrefix: 'PUBLIC_'` — only `PUBLIC_*` vars are exposed to the browser bundle.
-- Accessed via `import.meta.env.PUBLIC_*`.
-- Multiple `.env.[mode]` files for different deployment targets (qa, staging, production, per-client).
-
-### Key env vars
-
-```
-PUBLIC_API_URL
-PUBLIC_BUILDER_URL
-PUBLIC_FLAGSMITH_ENV_ID
-PUBLIC_LOGROCKET_APP_ID
-PUBLIC_KNACK_REDIRECT_URL
-```
-
-### Feature flags
-
-Managed by **Flagsmith**. Checked via utility functions in `/utils/flagsmith.ts`:
-
-```typescript
-import { isAdvSSOEnabled } from '@/utils/flagsmith';
-
-if (isAdvSSOEnabled()) { … }
-```
+None are needed. The dashboard and the API share one origin, so there is no API address to configure. Vite's dev
+proxy target (`http://localhost:8000`) lives in `vite.config.ts`.
 
 ### Constants files
 
@@ -849,22 +724,20 @@ export const ROUTES = { ROOT: '/', … } as const;
 `@/*` maps to `./src/*`. Use it for every non-relative import.
 
 ```typescript
-import { useApplicationQuery } from "@/hooks/api/queries/useApplicationQuery";
-import { type LiveAppPage } from "@/types/schema/LiveAppPage";
+import { useMeQuery } from '@/hooks/api/queries/auth/useMeQuery';
+import { type User } from '@/types/session';
 ```
 
 ### Import order (top to bottom)
 
 1. React and React Router DOM
 2. Third-party libraries
-3. `@knack/*` internal packages
-4. `@/types/…`
-5. `@/hooks/…`
-6. `@/context/…`
-7. `@/components/…`
-8. `@/utils/…`
-9. `@/constants/…`
-10. Relative imports (`./`, `../`)
+3. `@/types/…`
+4. `@/hooks/…`
+5. `@/components/…`
+6. `@/utils/…`
+7. `@/constants/…`
+8. Relative imports (`./`, `../`)
 
 Type-only imports (`import { type Foo }`) are grouped with their corresponding runtime imports, not separated.
 
@@ -874,7 +747,7 @@ Type-only imports (`import { type Foo }`) are grouped with their corresponding r
 
 ### Context provider pattern
 
-Every context module follows this exact three-export shape:
+If a context module is added, it follows this shape (none exist yet):
 
 ```typescript
 type FooContextState = { … };
@@ -891,87 +764,59 @@ export const useFooContext = () => useContext(FooContext);
 
 The raw context object is never exported.
 
-### View composition pattern
+### Page composition pattern
 
-Feature views split into three layers:
-
-1. `*View.tsx` — top-level entry, composes context providers.
-2. `*ViewRender.tsx` (or `*ViewContent.tsx`) — presentational, receives typed props.
-3. Focused sub-components — tabs, rows, cells, individual inputs.
+1. `*Page.tsx` in `src/pages/` — route entry, picks the layout and the form or content.
+2. Feature components in `src/components/<area>/` — forms and other stateful pieces.
+3. Primitives in `src/components/ui/` — presentational only.
 
 ### Form input pattern
 
-Every form input follows the same contract:
+Every form uses React Hook Form with a Zod schema, shared UI primitives and `FormErrorMessage`:
 
 ```typescript
-export function SomeInput({ input, isReadOnly }: Props) {
-  const { register, formState: { errors } } = useFormContext();
+const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
+  resolver: zodResolver(loginSchema),
+});
 
-  return (
-    <>
-      <Input {...register(input.field.key)} disabled={isReadOnly} />
-      <FormErrorMessage errors={errors} name={input.field.key} inputLabel={input.label} />
-    </>
-  );
-}
+<Input {...register('email')} aria-describedby="email-error" />
+<FormErrorMessage id="email-error" message={errors.email?.message} />
 ```
 
 ### Query / mutation split
 
 - Each **query/mutation hook file** owns its own network call — the plain async fetcher function is defined in the
-  same file as the hook, not in a separate API-functions file (see §6, "Where hooks live", for the grandfathered
-  exceptions that still split them).
+  same file as the hook, not in a separate API-functions file (see §6).
 - **Query hooks** wrap `useQuery` and pass the query options object.
 - **Mutation hooks** wrap `useMutation`, call `invalidateQueries` on success, and handle typed errors.
 
-### Lazy component pattern
-
-When a component pulls in a heavy dependency:
-
-```typescript
-// AddressGoogleAutocompleteInputLazy.tsx
-const AddressGoogleAutocompleteInput = lazy(
-  () => import('./AddressGoogleAutocompleteInput')
-);
-
-export function AddressGoogleAutocompleteInputLazy(props: Props) {
-  return (
-    <Suspense fallback={<InputSkeleton />}>
-      <AddressGoogleAutocompleteInput {...props} />
-    </Suspense>
-  );
-}
-```
-
 ### Discriminated union responses
 
-API responses with multiple possible shapes use discriminated unions rather than optional fields:
+API responses and state with multiple possible shapes use discriminated unions rather than optional fields. `Session` is the main example (see §8).
 
 ```typescript
-type SignInResponse =
-  | { type: "session"; session: Session }
-  | { type: "password_reset"; password_reset_url: string };
+type Session =
+  { status: 'loading' } | { status: 'anon' } | { status: 'authed'; user: User /* … */ };
 ```
 
 ---
 
 ## Build & Tooling Reference
 
-| Tool             | Version | Purpose                               |
-| ---------------- | ------- | ------------------------------------- |
-| Vite             | 7.x     | Build, dev server                     |
-| TypeScript       | 5.9     | Static typing                         |
-| Tailwind CSS     | 3.4     | Utility-first styling                 |
-| React Query      | 5.x     | Server state                          |
-| React Router DOM | 6.x     | Routing                               |
-| React Hook Form  | 7.x     | Form state                            |
-| Zod              | 3.x     | Schema validation                     |
-| Vitest           | latest  | Test runner                           |
-| MSW              | 2.x     | API mocking in tests                  |
-| ESLint           | 9.x     | Linting (`@knack/eslint-config`)      |
-| Prettier         | —       | Formatting (`@knack/prettier-config`) |
-| Husky            | 9.x     | Pre-commit hooks                      |
-| Flagsmith        | —       | Feature flags                         |
-| LogRocket        | —       | Session replay                        |
-| Datadog          | —       | Error tracking                        |
-| i18next          | —       | Internationalisation                  |
+| Tool             | Version | Purpose                            |
+| ---------------- | ------- | ---------------------------------- |
+| Vite             | 8.x     | Build, dev server and `/api` proxy |
+| TypeScript       | 5.9     | Static typing                      |
+| React            | 19      | UI                                 |
+| Tailwind CSS     | 3.4     | Utility-first styling              |
+| React Query      | 5.x     | Server state                       |
+| React Router DOM | 6.x     | Routing                            |
+| React Hook Form  | 7.x     | Form state                         |
+| Zod              | 3.x     | Schema validation                  |
+| Vitest           | 4.x     | Test runner                        |
+| MSW              | 2.x     | API mocking in tests               |
+| ESLint           | 10.x    | Linting                            |
+| Prettier         | 3.x     | Formatting (`.prettierrc`)         |
+
+Scripts: `npm run dev | test | typecheck | lint | build | build:api` (see `README.md`). `build:api` writes the
+production build into the API's `public/admin/`.

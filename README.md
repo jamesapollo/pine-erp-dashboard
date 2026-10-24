@@ -1,16 +1,30 @@
-# React + Vite
+# Commerce ERP dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The admin dashboard for Commerce ERP: a React single-page app that signs staff in against the Laravel API with a cookie session. In production the build is served by the API itself from `public/admin/`.
 
-Currently, two official plugins are available:
+## Prerequisites
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node 22 or newer.
+- The API running on `http://localhost:8000` (`php artisan serve` in `commerce-erp-api`).
+- `SANCTUM_STATEFUL_DOMAINS` in the API `.env` includes `localhost:5173`. The API's `.env.example` already does.
 
-## React Compiler
+## Scripts
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Command             | What it does                                                                |
+| ------------------- | --------------------------------------------------------------------------- |
+| `npm run dev`       | Starts Vite on `http://localhost:5173`, proxying API calls to `:8000`.      |
+| `npm test`          | Runs the Vitest suite once.                                                 |
+| `npm run typecheck` | Type-checks the app and the Vite config.                                    |
+| `npm run lint`      | Runs ESLint.                                                                |
+| `npm run build`     | Type-checks, then builds to `dist/` with asset URLs under `/admin/`.        |
+| `npm run build:api` | Builds straight into `../commerce-erp-api/public/admin` (gitignored there). |
 
-## Expanding the ESLint configuration
+The dev server serves the app at `/`. The proxy forwards `/api` and `/sanctum` for every method. It forwards `/login`, `/logout`, `/forgot-password` and `/reset-password` for POST only, because the same paths are also pages in the app.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Testing a reset link locally
+
+In the API `.env`, set `APP_URL=http://localhost:5173` and `MAIL_MAILER=log`. Request a reset from the forgot password page, then open the link from the newest entry in the API's `storage/logs/laravel.log`. It will point at the dev server.
+
+## Going live
+
+See the "Going live" section of the API README (`commerce-erp-api/README.md`).
