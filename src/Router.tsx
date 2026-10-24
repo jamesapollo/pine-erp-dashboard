@@ -1,19 +1,15 @@
-import { Outlet, type RouteObject } from 'react-router-dom';
+import { type RouteObject } from 'react-router-dom';
 
 import { App } from '@/App';
 import { GuestRoute } from '@/components/auth/GuestRoute';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { ShellPlaceholder } from '@/components/layout/ShellPlaceholder';
 import { ROUTES } from '@/constants/routes';
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { OverviewPage } from '@/pages/OverviewPage';
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
-
-// Stands in for the application shell until it exists.
-function ShellPlaceholder() {
-  return <Outlet />;
-}
 
 export const routes: RouteObject[] = [
   {
