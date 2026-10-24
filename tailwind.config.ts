@@ -14,6 +14,7 @@ export default {
           0: 'var(--neutral-0)',
           ...variableRamp('neutral', [25, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900]),
         },
+        clay: variableRamp('clay', [50, 100, 500, 600, 700]),
         success: variableRamp('success', [50, 100, 500, 600, 700]),
         warning: variableRamp('warning', [50, 100, 500, 600, 700]),
         danger: variableRamp('danger', [50, 100, 500, 600, 700]),

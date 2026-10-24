@@ -3,7 +3,7 @@ import { type RouteObject } from 'react-router-dom';
 import { App } from '@/App';
 import { GuestRoute } from '@/components/auth/GuestRoute';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { ShellPlaceholder } from '@/components/layout/ShellPlaceholder';
+import { AppShell } from '@/components/layout/AppShell';
 import { ROUTES } from '@/constants/routes';
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
 import { LoginPage } from '@/pages/LoginPage';
@@ -27,7 +27,7 @@ export const routes: RouteObject[] = [
         element: <ProtectedRoute />,
         children: [
           {
-            element: <ShellPlaceholder />,
+            element: <AppShell />,
             children: [
               { index: true, element: <OverviewPage /> },
               { path: ROUTES.CATCH_ALL, element: <NotFoundPage /> },
