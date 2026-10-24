@@ -8,11 +8,12 @@ import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { getFieldError, getRetryAfterSeconds, isStatus } from '@/utils/apiErrors';
+import { emailSchema } from '@/utils/emailSchema';
 import { getSafeRedirectPath } from '@/utils/safeRedirect';
 import { ROUTES } from '@/constants/routes';
 
 const loginSchema = z.object({
-  email: z.string().trim().min(1, 'Enter your email.').email('Enter a valid email.'),
+  email: emailSchema,
   password: z.string().min(1, 'Enter your password.'),
 });
 
