@@ -1,0 +1,14 @@
+:root{
+--shadow-xs:0 1px 1px rgba(33,29,46,.04);
+--shadow-sm:0 1px 2px rgba(33,29,46,.06),0 1px 1px rgba(33,29,46,.03);
+--shadow-md:0 6px 16px -4px rgba(33,29,46,.10),0 2px 4px rgba(33,29,46,.05);
+--shadow-lg:0 24px 48px -12px rgba(33,29,46,.22),0 4px 10px rgba(33,29,46,.06);
+--focus-ring:0 0 0 3px color-mix(in srgb,var(--brand-500) 28%,transparent);
+--focus-ring-danger:0 0 0 3px rgba(178,64,47,.22);
+--ease-out:cubic-bezier(.2,.7,.2,1);
+--ease-in-out:cubic-bezier(.45,0,.25,1);
+--dur-fast:120ms;
+--dur-base:180ms;
+--dur-slow:260ms;
+--blur-overlay:3px;
+}

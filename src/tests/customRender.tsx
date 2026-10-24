@@ -26,9 +26,11 @@ export function customRender(children: ReactNode) {
   };
 }
 
-export function customRenderAtRoute({ url }: { url: string }) {
+export function customRenderAtRoute({ url, state }: { url: string; state?: unknown }) {
   const queryClient = buildTestQueryClient();
-  const router = createMemoryRouter(routes, { initialEntries: [url] });
+  const router = createMemoryRouter(routes, {
+    initialEntries: [state === undefined ? url : { pathname: url, state }],
+  });
   return {
     router,
     queryClient,

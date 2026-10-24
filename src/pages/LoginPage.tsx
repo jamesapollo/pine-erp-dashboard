@@ -1,3 +1,10 @@
+import { LoginForm } from '@/components/auth/LoginForm';
+import { AuthLayout } from '@/components/layout/AuthLayout';
+
 export function LoginPage() {
-  return <h1>Sign in</h1>;
+  return (
+    <AuthLayout title="Sign in" description="Sign in with your work email.">
+      <LoginForm />
+    </AuthLayout>
+  );
 }
