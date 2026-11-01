@@ -86,6 +86,9 @@ Besides the originals (`Button`, `IconButton`, `Input`, `Card`, `Alert`, `Icon`,
 | `Badge`, `StatusBadge`           | Tone pill; `StatusBadge kind="product"` maps a status to its tone and label  |
 | `Tabs`                           | Tab list (product list status filter, product detail Variants/Stock history) |
 | `Select`, `Textarea`, `Switch`   | `forwardRef` form controls; bind with `register` like `Input`                |
+| `Radio`                          | `forwardRef` radio with `label` and `description`; bind with `register`      |
+| `Timeline`                       | `<ol>` of `TimelineItem` (title, time, meta, note, tone, icon)               |
+| `LifecycleStepper`               | Step bars with `data-state` done/current/todo; `cancelled` greys the done    |
 | `Chip`                           | Toggle chip with `aria-pressed` (option value picker)                        |
 | `OrderRef`                       | Monospace reference text such as a SKU                                       |
 | `DataTable`                      | Generic `DataTable<Row>` with `columns`, `rows`, `getRowKey`, `caption`      |
