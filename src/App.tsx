@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Outlet } from 'react-router-dom';
 
 import { queryKeys } from '@/hooks/api/queryKeys';
+import { ToastContextProvider } from '@/components/ui/ToastContext';
 import { setUnauthenticatedHandler } from '@/utils/axiosConfig';
 
 export function App() {
@@ -17,5 +18,9 @@ export function App() {
     });
   }, [queryClient]);
 
-  return <Outlet />;
+  return (
+    <ToastContextProvider>
+      <Outlet />
+    </ToastContextProvider>
+  );
 }
