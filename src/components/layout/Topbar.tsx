@@ -4,6 +4,7 @@ import { ChevronRight } from 'lucide-react';
 
 import { type RouteHandle } from '@/types/routeHandle';
 import { useProductQuery } from '@/hooks/api/queries/catalogue/useProductQuery';
+import { useDeliveryQuery } from '@/hooks/api/queries/sales/useDeliveryQuery';
 import { useOrderQuery } from '@/hooks/api/queries/sales/useOrderQuery';
 import { useAuthedSession } from '@/hooks/useAuthedSession';
 import { Icon } from '@/components/ui/Icon';
@@ -23,8 +24,8 @@ export function Topbar() {
   const deepestMatch = matches.filter((match) => isRouteHandle(match.handle)).at(-1);
   const deepestHandle = isRouteHandle(deepestMatch?.handle) ? deepestMatch.handle : undefined;
 
-  // A product or order route whose id isn't a number renders "Page not found", so its crumb says
-  // so too.
+  // A product, order or delivery route whose id isn't a number renders "Page not found", so its
+  // crumb says so too.
   const trailingCrumb = deepestHandle?.trailingCrumb;
   const productIdParam = deepestMatch?.params.productId;
   const hasProductCrumb = trailingCrumb === 'productName';
@@ -38,13 +39,25 @@ export function Topbar() {
   const shouldLoadOrder = hasOrderCrumb && isValidOrderId && hasPermission('orders.view');
   const orderQuery = useOrderQuery(shouldLoadOrder ? Number(orderIdParam) : Number.NaN);
 
+  const deliveryIdParam = deepestMatch?.params.deliveryId;
+  const hasDeliveryCrumb = trailingCrumb === 'deliveryReference';
+  const isValidDeliveryId = isDigits(deliveryIdParam);
+  const shouldLoadDelivery = hasDeliveryCrumb && isValidDeliveryId && hasPermission('orders.view');
+  const deliveryQuery = useDeliveryQuery(shouldLoadDelivery ? Number(deliveryIdParam) : Number.NaN);
+
   let crumbs = deepestHandle?.crumbs ?? [];
-  if ((hasProductCrumb && !isValidProductId) || (hasOrderCrumb && !isValidOrderId)) {
+  if (
+    (hasProductCrumb && !isValidProductId) ||
+    (hasOrderCrumb && !isValidOrderId) ||
+    (hasDeliveryCrumb && !isValidDeliveryId)
+  ) {
     crumbs = ['Page not found'];
   } else if (hasProductCrumb && productQuery.data) {
     crumbs = [...crumbs, productQuery.data.title];
   } else if (hasOrderCrumb && orderQuery.data) {
     crumbs = [...crumbs, orderQuery.data.reference];
+  } else if (hasDeliveryCrumb && deliveryQuery.data) {
+    crumbs = [...crumbs, deliveryQuery.data.order_reference];
   }
 
   return (
