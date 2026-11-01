@@ -12,6 +12,8 @@ export const ROUTES = {
   ORDER_DETAIL: '/orders/:orderId',
   DELIVERIES: '/deliveries',
   DELIVERY_DETAIL: '/deliveries/:deliveryId',
+  STOCK: '/inventory',
+  STOCK_VARIANT: '/inventory/:variantId',
   CATCH_ALL: '*',
 } as const;
 
@@ -25,4 +27,8 @@ export function buildOrderPath(orderId: number): string {
 
 export function buildDeliveryPath(deliveryId: number): string {
   return `${ROUTES.DELIVERIES}/${deliveryId}`;
+}
+
+export function buildStockVariantPath(variantId: number): string {
+  return `${ROUTES.STOCK}/${variantId}`;
 }

@@ -43,10 +43,11 @@ A reference guide for developers working on this codebase. Covers architecture, 
 
 ```
 src/
-├── components/     # UI components: ui/ (primitives), auth/, layout/, products/, sales/
+├── components/     # UI components: ui/ (primitives), auth/, layout/, products/, sales/, inventory/
 ├── constants/      # Global constants (UPPER_CASE exports), e.g. routes.ts
 ├── hooks/          # Custom hooks (generic + API-specific)
-├── pages/          # Page-level route components (products/ the catalogue screens, sales/ orders and deliveries)
+├── pages/          # Page-level route components (products/ the catalogue screens, sales/ orders and deliveries,
+│                   # inventory/ the stock list and one variant's stock)
 ├── styles/tokens/  # Design-token CSS copied verbatim from the Commerce ERP design system
 ├── tests/          # Test infra, fixtures, MSW handlers
 ├── types/          # TypeScript type definitions
@@ -74,8 +75,9 @@ components/
 ├── auth/      # Sign-in, forgot/reset forms, ProtectedRoute (+ AuthedSessionContext), GuestRoute, RequirePermission
 ├── layout/    # AuthLayout and the signed-in AppShell (Sidebar, Topbar)
 ├── products/  # Catalogue screens' forms, cards, tables and dialogs (ProductNewForm, ProductDetailForm, …)
-└── sales/     # Orders and deliveries: tables, detail cards, header actions and their dialogs (OrdersTable,
-               # OrderHeaderActions, DispatchOrderDialog, DeliveryHeaderActions, DeliveryTrackingDialog, …)
+├── sales/     # Orders and deliveries: tables, detail cards, header actions and their dialogs (OrdersTable,
+│              # OrderHeaderActions, DispatchOrderDialog, DeliveryHeaderActions, DeliveryTrackingDialog, …)
+└── inventory/ # Stock screens: StockLevelsTable, VariantTransactionsCard, StockAdjustDialog (+ stockAdjustSchema)
 ```
 
 ### UI primitives
@@ -93,6 +95,7 @@ Besides the originals (`Button`, `IconButton`, `Input`, `Card`, `Alert`, `Icon`,
 | `LifecycleStepper`               | Step bars with `data-state` done/current/todo; `cancelled` greys the done                         |
 | `Chip`                           | Toggle chip with `aria-pressed` (option value picker)                                             |
 | `OrderRef`, `CopyButton`         | Monospace reference text (SKU, order reference); copy-to-clipboard button                         |
+| `StatCard`                       | Figure tile with label, icon and hint (stock totals)                                              |
 | `Pagination`                     | "Showing {from}–{to} of {total}" footer with previous/next (orders, deliveries)                   |
 | `DataTable`                      | Generic `DataTable<Row>` with `columns`, `rows`, `getRowKey`, `caption`                           |
 | `PageHeader`, `BackLink`         | Page title row with actions; back link above it                                                   |
@@ -295,7 +298,9 @@ src/hooks/
 │   │   ├── auth/useMeQuery.ts                # fetcher + hook, one file
 │   │   ├── catalogue/                        # useProductsQuery, useProductQuery, useProductStatusCountsQuery,
 │   │   │                                     # useCategoriesQuery, useOptionTypesQuery
-│   │   ├── inventory/useStockMovementsQuery.ts
+│   │   ├── inventory/                        # useStockMovementsQuery (a product's), useVariantStockMovementsQuery,
+│   │   │                                     # useStockLevelsQuery, useStockSummaryQuery (tab counts, totals),
+│   │   │                                     # useStockLevelQuery (one variant)
 │   │   └── sales/                            # useOrdersQuery, useOrderQuery, useOrderStatusCountsQuery,
 │   │                                         # usePendingOrderCountQuery, useDeliveriesQuery, useDeliveryQuery,
 │   │                                         # useCouriersQuery
@@ -315,7 +320,8 @@ src/hooks/
 ├── useCreateProductFlow.ts                   # add product: product, variants, stock, images, publish
 ├── useProductListFilters.ts                  # products list filters kept in the URL search params
 ├── useOrderListFilters.ts                    # orders list filters (status, search, fee pending, page) in the URL
-└── useDeliveryListFilters.ts                 # deliveries list filters kept in the URL search params
+├── useDeliveryListFilters.ts                 # deliveries list filters kept in the URL search params
+└── useStockListFilters.ts                    # stock list filters (low/out status, search, category, page) in the URL
 ```
 
 `useAuthedSession()` returns the `authed` session that `ProtectedRoute` provides through `AuthedSessionContext`
@@ -562,13 +568,15 @@ export const ROUTES = {
   ORDER_DETAIL: '/orders/:orderId',
   DELIVERIES: '/deliveries',
   DELIVERY_DETAIL: '/deliveries/:deliveryId',
+  STOCK: '/inventory',
+  STOCK_VARIANT: '/inventory/:variantId',
   CATCH_ALL: '*',
 } as const;
 
 export function buildProductPath(productId: number): string {
   return `${ROUTES.PRODUCTS}/${productId}`;
 }
-// buildOrderPath(orderId) and buildDeliveryPath(deliveryId) follow the same shape.
+// buildOrderPath(orderId), buildDeliveryPath(deliveryId) and buildStockVariantPath(variantId) follow the same shape.
 ```
 
 Never write a path string inline; use `ROUTES`, and `buildProductPath(id)`, `buildOrderPath(id)` or
@@ -578,20 +586,21 @@ administrator.
 ### Breadcrumbs and permission gates
 
 - Every page route under `AppShell` carries a `handle` typed as `RouteHandle` (`/types/routeHandle.ts`): `crumbs`
-  for the `Topbar` breadcrumb, and `trailingCrumb` (`'productName'`, `'orderReference'` or `'deliveryReference'`) to
-  append the loaded product's title or the order's reference.
+  for the `Topbar` breadcrumb, and `trailingCrumb` (`'productName'`, `'orderReference'`, `'deliveryReference'` or
+  `'stockVariantName'`) to append the loaded product's title, the order's reference or "Product · S · Red".
 - `RequirePermission` (`components/auth/RequirePermission.tsx`) is a layout route: it renders `<Outlet />` when
   `hasPermission(slug)` and otherwise `NoAccess` with the given message. The products screens sit under
   `catalogue.view` with the fixed copy "You don't have access to products."; the four sales screens (orders list and
-  detail, deliveries list and detail) under `orders.view` with "You don't have access to orders." It never signs the
-  user out.
+  detail, deliveries list and detail) under `orders.view` with "You don't have access to orders."; the two stock
+  screens under `inventory.view` with "You don't have access to stock." It never signs the user out.
 - Finer permissions are checked inside screens with `useAuthedSession().hasPermission(…)`: `catalogue.manage` for
   edits, `pricing.manage` for any `price` field (without it the request never carries a `price` key), and
   `inventory.manage` for stock. `orders.manage` gates every order and delivery action (confirm, cancel, dispatch,
   complete, delivery fee, delivery moves, notes, tracking edits); without it the sales screens are read-only. Which
   action shows in which status comes from `getOrderActions` / `getDeliveryActions` (`/utils/salesRules.ts`).
 - `ProductDetailRoute` renders `NotFoundPage` for a non-numeric `:productId` and `ProductDetailPage` otherwise;
-  `OrderDetailRoute` and `DeliveryDetailRoute` do the same for `:orderId` and `:deliveryId`.
+  `OrderDetailRoute`, `DeliveryDetailRoute` and `StockVariantRoute` do the same for `:orderId`, `:deliveryId` and
+  `:variantId`.
   `ProductDetailForm` uses `useBlocker` to ask "Discard changes?" before leaving with unsaved edits.
 
 ### Do not mock routing primitives
@@ -821,7 +830,7 @@ There is no router basename in tests (the app basename is `/`). Pass `url` as th
 `'/reset-password?token=…'`, `'/products/12'`. Fixtures live in `src/tests/fixtures/`: `buildUserFixture` (a `User`
 with a membership and the catalogue, pricing, inventory and orders permissions) in `user.ts`, and in `catalogue.ts`
 `buildProductFixture`, `buildProductListItemFixture`, `buildVariantFixture`, `buildProductImageFixture`,
-`buildOptionTypeFixture`, `buildCategoryFixture`, `buildStockMovementFixture`, `buildMoney` and `buildPaginated`; in
+`buildOptionTypeFixture`, `buildCategoryFixture`, `buildStockMovementFixture`, `buildVariantStockLevelFixture`, `buildMoney` and `buildPaginated`; in
 `sales.ts` `buildOrderFixture`, `buildOrderListItemFixture`, `buildOrderLineFixture`, `buildOrderDeliveryFixture`,
 `buildDeliveryFixture`, `buildDeliveryListItemFixture`, `buildDeliveryEventFixture` and `buildCourierFixture`.
 The MSW endpoint paths are in `src/tests/mocks/endpoints.ts` (`mockEndpoints`); the store-scoped ones use a
@@ -894,6 +903,9 @@ Sales is the exception, because orders arrive from the storefront:
 - Use `'always'`, not `true`: with `staleTime: Infinity`, `true` never refetches because the data is never stale.
 - A mutation that stores its response (`storeOrderResponse`, `storeDeliveryResponse`) first cancels the detail's
   in-flight reload so an older answer can't land on top of it.
+- Stock moves with those orders, so the stock list, its summary and a variant's stock use `refetchOnMount: 'always'`
+  and `refetchOnWindowFocus: 'always'`; order moves (`invalidateStockQueries`) and stock adjustments invalidate
+  `stockLevels(storeId)`.
 
 ---
 
@@ -916,7 +928,10 @@ utils/
 ```
 
 Catalogue endpoints are store-scoped (`storePath(store.id, '/products')`, `'/categories'`, `'/option-types'`);
-inventory ones too (`'/stock-movements'` filtered by `product_id`, `'/stock-adjustments'`). Lists come back as
+inventory ones too (`'/stock-movements'` filtered by `product_id` or `variant_id` and `type`, `'/stock-adjustments'`,
+`'/stock-levels'` and `'/stock-levels/{variantId}'`). The stock list asks for a status as an available range
+(`getAvailableRange`, `/utils/stockStatus.ts`); "low" is 1 to `LOW_STOCK_THRESHOLD` (`/constants/stock.ts`, 3), the
+same rule `getStockStatus` and `StockCount` use. Lists come back as
 `Paginated<T>` (`/types/catalogue.ts`).
 
 ### Axios instance features

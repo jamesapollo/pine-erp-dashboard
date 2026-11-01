@@ -1,11 +1,13 @@
 import { cn } from '@/utils/cn';
+import { getStockStatus } from '@/utils/stockStatus';
 
 export function StockCount({ value }: { value: number }) {
+  const status = getStockStatus(value);
   return (
     <span
       className={cn(
-        value <= 0 && 'font-semibold text-danger-600',
-        value >= 1 && value <= 3 && 'font-semibold text-warning-700',
+        status === 'out' && 'font-semibold text-danger-600',
+        status === 'low' && 'font-semibold text-warning-700',
       )}
     >
       {value}

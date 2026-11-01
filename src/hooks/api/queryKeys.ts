@@ -1,4 +1,4 @@
-import { type ProductStatus } from '@/types/catalogue';
+import { type ProductStatus, type StockMovementType } from '@/types/catalogue';
 import { type DeliveryStatus, type OrderStatus } from '@/types/sales';
 
 export type ProductListFilters = {
@@ -25,10 +25,21 @@ export type DeliveryListFilters = {
   perPage?: number;
 };
 
+export type StockStatusFilter = 'low' | 'out';
+
+export type StockListFilters = {
+  status?: StockStatusFilter;
+  search?: string;
+  category?: number;
+  page?: number;
+  perPage?: number;
+};
+
 const products = (storeId: number) => ['stores', storeId, 'products'] as const;
 const orders = (storeId: number) => ['stores', storeId, 'orders'] as const;
 const deliveries = (storeId: number) => ['stores', storeId, 'deliveries'] as const;
 const allStockMovements = (storeId: number) => ['stores', storeId, 'stock-movements'] as const;
+const stockLevels = (storeId: number) => ['stores', storeId, 'stock-levels'] as const;
 
 export const queryKeys = {
   me: ['me'],
@@ -42,6 +53,13 @@ export const queryKeys = {
   allStockMovements,
   stockMovements: (storeId: number, productId: number) =>
     [...allStockMovements(storeId), productId] as const,
+  variantStockMovements: (storeId: number, variantId: number, type?: StockMovementType) =>
+    [...allStockMovements(storeId), 'variant', variantId, type ?? 'all'] as const,
+  stockLevels,
+  stockLevelList: (storeId: number, filters: StockListFilters) =>
+    [...stockLevels(storeId), 'list', filters] as const,
+  stockLevel: (storeId: number, variantId: number) =>
+    [...stockLevels(storeId), 'detail', variantId] as const,
   orders,
   orderList: (storeId: number, filters: OrderListFilters) =>
     [...orders(storeId), 'list', filters] as const,

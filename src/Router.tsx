@@ -20,11 +20,14 @@ import { OrderDetailRoute } from '@/pages/sales/OrderDetailRoute';
 import { DeliveriesPage } from '@/pages/sales/DeliveriesPage';
 import { DeliveryDetailRoute } from '@/pages/sales/DeliveryDetailRoute';
 import { OrdersPage } from '@/pages/sales/OrdersPage';
+import { StockPage } from '@/pages/inventory/StockPage';
+import { StockVariantRoute } from '@/pages/inventory/StockVariantRoute';
 import { type RouteHandle } from '@/types/routeHandle';
 
 const productsCrumbs = ['Catalogue', 'Products'];
 const ordersCrumbs = ['Sales', 'Orders'];
 const deliveriesCrumbs = ['Sales', 'Deliveries'];
+const stockCrumbs = ['Inventory', 'Stock'];
 
 export const routes: RouteObject[] = [
   {
@@ -129,6 +132,29 @@ export const routes: RouteObject[] = [
                     handle: {
                       crumbs: productsCrumbs,
                       trailingCrumb: 'productName',
+                    } satisfies RouteHandle,
+                  },
+                ],
+              },
+              {
+                element: (
+                  <RequirePermission
+                    slug="inventory.view"
+                    message="You don't have access to stock."
+                  />
+                ),
+                children: [
+                  {
+                    path: ROUTES.STOCK,
+                    element: <StockPage />,
+                    handle: { crumbs: stockCrumbs } satisfies RouteHandle,
+                  },
+                  {
+                    path: ROUTES.STOCK_VARIANT,
+                    element: <StockVariantRoute />,
+                    handle: {
+                      crumbs: stockCrumbs,
+                      trailingCrumb: 'stockVariantName',
                     } satisfies RouteHandle,
                   },
                 ],

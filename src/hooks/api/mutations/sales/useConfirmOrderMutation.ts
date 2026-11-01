@@ -26,6 +26,7 @@ export function storeOrderResponse(queryClient: QueryClient, storeId: number, or
 export function invalidateStockQueries(queryClient: QueryClient, storeId: number): void {
   void queryClient.invalidateQueries({ queryKey: queryKeys.products(storeId) });
   void queryClient.invalidateQueries({ queryKey: queryKeys.allStockMovements(storeId) });
+  void queryClient.invalidateQueries({ queryKey: queryKeys.stockLevels(storeId) });
 }
 
 /** A 409 means the order moved under us (or its hold ran out), so load it again. */

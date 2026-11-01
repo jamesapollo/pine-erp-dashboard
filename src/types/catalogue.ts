@@ -82,6 +82,20 @@ export type StockMovement = {
   order_id: number | null;
   created_at: string;
 };
+export type VariantStockLevel = {
+  variant_id: number;
+  product_id: number;
+  product_title: string;
+  product_status: ProductStatus;
+  sku: string;
+  is_active: boolean;
+  is_default: boolean;
+  option_values: VariantOptionValue[];
+  category_ids: number[];
+  image: Pick<ProductImage, 'url' | 'alt_text'> | null;
+  stock: VariantStock;
+};
+export type StockTotals = { on_hand: number; reserved: number };
 export type Paginated<T> = {
   data: T[];
   meta: { current_page: number; per_page: number; total: number; last_page: number };

@@ -3,7 +3,11 @@ import { Image } from 'lucide-react';
 import { type ProductImage } from '@/types/catalogue';
 import { Icon } from '@/components/ui/Icon';
 
-export function ProductThumbnail({ image }: { image: ProductImage | null }) {
+export function ProductThumbnail({
+  image,
+}: {
+  image: Pick<ProductImage, 'url' | 'alt_text'> | null;
+}) {
   if (image) {
     return (
       <img

@@ -4,11 +4,13 @@ import { ChevronRight } from 'lucide-react';
 
 import { type RouteHandle } from '@/types/routeHandle';
 import { useProductQuery } from '@/hooks/api/queries/catalogue/useProductQuery';
+import { useStockLevelQuery } from '@/hooks/api/queries/inventory/useStockLevelQuery';
 import { useDeliveryQuery } from '@/hooks/api/queries/sales/useDeliveryQuery';
 import { useOrderQuery } from '@/hooks/api/queries/sales/useOrderQuery';
 import { useAuthedSession } from '@/hooks/useAuthedSession';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/utils/cn';
+import { getStockVariantName } from '@/utils/variantLabel';
 
 function isRouteHandle(handle: unknown): handle is RouteHandle {
   return typeof handle === 'object' && handle !== null && 'crumbs' in handle;
@@ -24,7 +26,7 @@ export function Topbar() {
   const deepestMatch = matches.filter((match) => isRouteHandle(match.handle)).at(-1);
   const deepestHandle = isRouteHandle(deepestMatch?.handle) ? deepestMatch.handle : undefined;
 
-  // A product, order or delivery route whose id isn't a number renders "Page not found", so its
+  // A product, order, delivery or stock variant route whose id isn't a number renders "Page not found", so its
   // crumb says so too.
   const trailingCrumb = deepestHandle?.trailingCrumb;
   const productIdParam = deepestMatch?.params.productId;
@@ -45,11 +47,21 @@ export function Topbar() {
   const shouldLoadDelivery = hasDeliveryCrumb && isValidDeliveryId && hasPermission('orders.view');
   const deliveryQuery = useDeliveryQuery(shouldLoadDelivery ? Number(deliveryIdParam) : Number.NaN);
 
+  const variantIdParam = deepestMatch?.params.variantId;
+  const hasStockVariantCrumb = trailingCrumb === 'stockVariantName';
+  const isValidVariantId = isDigits(variantIdParam);
+  const shouldLoadStockVariant =
+    hasStockVariantCrumb && isValidVariantId && hasPermission('inventory.view');
+  const stockLevelQuery = useStockLevelQuery(
+    shouldLoadStockVariant ? Number(variantIdParam) : Number.NaN,
+  );
+
   let crumbs = deepestHandle?.crumbs ?? [];
   if (
     (hasProductCrumb && !isValidProductId) ||
     (hasOrderCrumb && !isValidOrderId) ||
-    (hasDeliveryCrumb && !isValidDeliveryId)
+    (hasDeliveryCrumb && !isValidDeliveryId) ||
+    (hasStockVariantCrumb && !isValidVariantId)
   ) {
     crumbs = ['Page not found'];
   } else if (hasProductCrumb && productQuery.data) {
@@ -58,6 +70,8 @@ export function Topbar() {
     crumbs = [...crumbs, orderQuery.data.reference];
   } else if (hasDeliveryCrumb && deliveryQuery.data) {
     crumbs = [...crumbs, deliveryQuery.data.order_reference];
+  } else if (hasStockVariantCrumb && stockLevelQuery.data) {
+    crumbs = [...crumbs, getStockVariantName(stockLevelQuery.data)];
   }
 
   return (

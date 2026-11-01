@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
+  Boxes,
   LayoutDashboard,
   LogOut,
   Package,
@@ -66,6 +67,11 @@ export function Sidebar({
         {permissions.includes('catalogue.view') ? (
           <SidebarGroup label="Catalogue">
             <SidebarLink to={ROUTES.PRODUCTS} icon={Package} label="Products" />
+          </SidebarGroup>
+        ) : null}
+        {permissions.includes('inventory.view') ? (
+          <SidebarGroup label="Inventory">
+            <SidebarLink to={ROUTES.STOCK} icon={Boxes} label="Stock" />
           </SidebarGroup>
         ) : null}
       </nav>

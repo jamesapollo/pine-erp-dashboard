@@ -26,6 +26,8 @@ export const mockEndpoints = {
   category: `${store}/categories/:categoryId`,
   stockMovements: `${store}/stock-movements`,
   stockAdjustments: `${store}/stock-adjustments`,
+  stockLevels: `${store}/stock-levels`,
+  stockLevel: `${store}/stock-levels/:variantId`,
   orders: `${store}/orders`,
   order: `${store}/orders/:orderId`,
   orderConfirm: `${store}/orders/:orderId/confirm`,

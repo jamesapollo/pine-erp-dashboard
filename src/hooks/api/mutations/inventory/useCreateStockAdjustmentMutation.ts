@@ -1,36 +1,34 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { type VariantStock } from '@/types/catalogue';
+import { type StockMovement, type VariantStock } from '@/types/catalogue';
 import { queryKeys } from '@/hooks/api/queryKeys';
 import { useAuthedSession } from '@/hooks/useAuthedSession';
 import { useToastContext } from '@/components/ui/ToastContext';
-import { getActionErrorMessage } from '@/utils/apiErrors';
 import { axiosInstance } from '@/utils/axiosConfig';
 import { storePath } from '@/utils/storePath';
 
-export type CreateStockAdjustmentBody = {
-  variant_id: number;
-  type: 'receipt';
-  change: number;
-  reason: string;
-};
+/** A change (receipts add, adjustments add or remove) or a count, which only an adjustment can record. */
+export type CreateStockAdjustmentBody =
+  | { variant_id: number; type: 'receipt' | 'adjustment'; change: number; reason: string }
+  | { variant_id: number; type: 'adjustment'; set_to: number; reason: string };
 
 export async function createStockAdjustment(
   storeId: number,
   body: CreateStockAdjustmentBody,
-): Promise<{ stock: VariantStock }> {
-  const { data } = await axiosInstance.post<{ data: { stock: VariantStock } }>(
-    storePath(storeId, '/stock-adjustments'),
-    body,
-  );
-  return { stock: data.data.stock };
+): Promise<{ movement: StockMovement; stock: VariantStock }> {
+  const { data } = await axiosInstance.post<{
+    data: { movement: StockMovement; stock: VariantStock };
+  }>(storePath(storeId, '/stock-adjustments'), body);
+  return data.data;
 }
 
 export type CreateStockAdjustmentMutationParams = {
-  productId: number;
   body: CreateStockAdjustmentBody;
+  /** "Shirt · M · Red", for the confirmation toast. */
+  variantName: string;
 };
 
+// Errors are shown in the adjust dialog, so there is no error toast here.
 export function useCreateStockAdjustmentMutation() {
   const { store } = useAuthedSession();
   const queryClient = useQueryClient();
@@ -38,14 +36,17 @@ export function useCreateStockAdjustmentMutation() {
   return useMutation({
     mutationFn: ({ body }: CreateStockAdjustmentMutationParams) =>
       createStockAdjustment(store.id, body),
-    onSuccess: async (_result, { productId }) => {
+    onSuccess: async ({ movement }, { body, variantName }) => {
+      const sign = movement.quantity > 0 ? '+' : '−';
+      showToast({
+        title: body.type === 'receipt' ? 'Stock received' : 'Stock adjusted',
+        description: `${variantName}  ${sign}${Math.abs(movement.quantity)}`,
+      });
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.stockLevels(store.id) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.allStockMovements(store.id) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.products(store.id) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.stockMovements(store.id, productId) }),
       ]);
-    },
-    onError: (error) => {
-      showToast({ title: getActionErrorMessage(error), tone: 'danger' });
     },
   });
 }

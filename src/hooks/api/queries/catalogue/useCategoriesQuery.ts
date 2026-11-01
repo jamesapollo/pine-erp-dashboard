@@ -18,7 +18,7 @@ export function categoriesQueryOptions(storeId: number) {
   });
 }
 
-export function useCategoriesQuery() {
+export function useCategoriesQuery({ isEnabled = true }: { isEnabled?: boolean } = {}) {
   const { store } = useAuthedSession();
-  return useQuery(categoriesQueryOptions(store.id));
+  return useQuery({ ...categoriesQueryOptions(store.id), enabled: isEnabled });
 }

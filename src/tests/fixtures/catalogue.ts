@@ -8,6 +8,7 @@ import {
   type ProductListItem,
   type ProductVariant,
   type StockMovement,
+  type VariantStockLevel,
 } from '@/types/catalogue';
 
 export function buildMoney(amount: string): Money {
@@ -140,6 +141,28 @@ export function buildStockMovementFixture(overrides: Partial<StockMovement> = {}
     actor: { id: 1, name: 'Wanjiru Kamau' },
     order_id: null,
     created_at: '2026-10-01T09:00:00+00:00',
+    ...overrides,
+  };
+}
+
+export function buildVariantStockLevelFixture(
+  overrides: Partial<VariantStockLevel> = {},
+): VariantStockLevel {
+  return {
+    variant_id: 1,
+    product_id: 1,
+    product_title: 'Ankara wrap dress',
+    product_status: 'published',
+    sku: 'AWD-M-INDIGO',
+    is_active: true,
+    is_default: false,
+    option_values: [
+      { option_type_id: 1, option_value_id: 2, value: 'M' },
+      { option_type_id: 2, option_value_id: 5, value: 'Indigo' },
+    ],
+    category_ids: [],
+    image: null,
+    stock: { on_hand: 12, reserved: 2, available: 10 },
     ...overrides,
   };
 }
