@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw';
 
+import { buildPaginated } from '@/tests/fixtures/catalogue';
 import { mockEndpoints } from '@/tests/mocks/endpoints';
 
 export const handlers = [
@@ -11,4 +12,8 @@ export const handlers = [
   http.post(mockEndpoints.logout, () => new HttpResponse(null, { status: 204 })),
   http.post(mockEndpoints.forgotPassword, () => new HttpResponse(null, { status: 204 })),
   http.post(mockEndpoints.resetPassword, () => new HttpResponse(null, { status: 204 })),
+  http.get(mockEndpoints.products, () => HttpResponse.json(buildPaginated([]))),
+  http.get(mockEndpoints.optionTypes, () => HttpResponse.json({ data: [] })),
+  http.get(mockEndpoints.categories, () => HttpResponse.json({ data: [] })),
+  http.get(mockEndpoints.stockMovements, () => HttpResponse.json(buildPaginated([]))),
 ];

@@ -19,9 +19,11 @@ export function SessionStatusScreen({
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-surface-app p-6">
-      <Card className="flex w-full max-w-[400px] flex-col gap-4 p-8">
-        <h1 className="text-xl font-semibold text-text-primary">Can't reach the server.</h1>
-        <Button onClick={onRetry}>Try again</Button>
+      <Card flush className="w-full max-w-[400px]">
+        <div className="flex flex-col gap-4 p-8">
+          <h1 className="text-xl font-semibold text-text-primary">Can't reach the server.</h1>
+          <Button onClick={onRetry}>Try again</Button>
+        </div>
       </Card>
     </main>
   );

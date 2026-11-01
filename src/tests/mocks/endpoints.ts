@@ -1,3 +1,5 @@
+const store = '/api/v1/stores/:storeId';
+
 export const mockEndpoints = {
   csrfCookie: '/sanctum/csrf-cookie',
   login: '/login',
@@ -5,4 +7,23 @@ export const mockEndpoints = {
   forgotPassword: '/forgot-password',
   resetPassword: '/reset-password',
   me: '/api/v1/me',
+  products: `${store}/products`,
+  product: `${store}/products/:productId`,
+  productPublish: `${store}/products/:productId/publish`,
+  productUnpublish: `${store}/products/:productId/unpublish`,
+  productArchive: `${store}/products/:productId/archive`,
+  variants: `${store}/products/:productId/variants`,
+  variant: `${store}/products/:productId/variants/:variantId`,
+  images: `${store}/products/:productId/images`,
+  image: `${store}/products/:productId/images/:imageId`,
+  imageMain: `${store}/products/:productId/images/:imageId/main`,
+  imagesOrder: `${store}/products/:productId/images/order`,
+  optionTypes: `${store}/option-types`,
+  optionType: `${store}/option-types/:optionTypeId`,
+  optionValues: `${store}/option-types/:optionTypeId/values`,
+  optionValue: `${store}/option-types/:optionTypeId/values/:optionValueId`,
+  categories: `${store}/categories`,
+  category: `${store}/categories/:categoryId`,
+  stockMovements: `${store}/stock-movements`,
+  stockAdjustments: `${store}/stock-adjustments`,
 } as const;

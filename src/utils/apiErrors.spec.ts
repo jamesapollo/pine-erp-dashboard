@@ -1,6 +1,12 @@
 import { AxiosError, AxiosHeaders } from 'axios';
 
-import { getFieldError, getRetryAfterSeconds, isStatus } from '@/utils/apiErrors';
+import {
+  getActionErrorMessage,
+  getFieldError,
+  getFirstValidationMessage,
+  getRetryAfterSeconds,
+  isStatus,
+} from '@/utils/apiErrors';
 
 function buildAxiosError(status: number, data: unknown = {}, headers: Record<string, string> = {}) {
   const config = { headers: new AxiosHeaders() };
@@ -47,5 +53,47 @@ describe('isStatus', () => {
     expect(isStatus(buildAxiosError(422), 422)).toBe(true);
     expect(isStatus(buildAxiosError(422), 429)).toBe(false);
     expect(isStatus(new Error('boom'), 422)).toBe(false);
+  });
+});
+
+describe('getFirstValidationMessage', () => {
+  it('returns the first message of the first field', () => {
+    const error = buildAxiosError(422, {
+      message: 'Invalid.',
+      errors: { price: ['The price must be at least 1.00.'], title: ['Required.'] },
+    });
+
+    expect(getFirstValidationMessage(error)).toBe('The price must be at least 1.00.');
+  });
+
+  it('returns undefined without validation errors', () => {
+    expect(getFirstValidationMessage(buildAxiosError(500))).toBeUndefined();
+    expect(getFirstValidationMessage(new Error('boom'))).toBeUndefined();
+  });
+});
+
+describe('getActionErrorMessage', () => {
+  it('explains a missing permission on 403', () => {
+    expect(getActionErrorMessage(buildAxiosError(403))).toBe(
+      "You don't have permission to do that.",
+    );
+  });
+
+  it('shows the first validation message on 422', () => {
+    const error = buildAxiosError(422, {
+      message: 'Invalid.',
+      errors: { price: ['The price must be at least 1.00.'] },
+    });
+
+    expect(getActionErrorMessage(error)).toBe('The price must be at least 1.00.');
+  });
+
+  it('falls back to the body message on 422 without field errors', () => {
+    expect(getActionErrorMessage(buildAxiosError(422, { message: 'Nope.' }))).toBe('Nope.');
+  });
+
+  it('uses a generic message otherwise', () => {
+    expect(getActionErrorMessage(buildAxiosError(500))).toBe('Something went wrong. Try again.');
+    expect(getActionErrorMessage(new Error('boom'))).toBe('Something went wrong. Try again.');
   });
 });

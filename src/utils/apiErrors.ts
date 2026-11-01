@@ -24,3 +24,18 @@ export function getTooManyRequestsMessage(error: unknown): string {
     ? 'Too many requests. Try again in a minute.'
     : `Too many requests. Try again in ${seconds} seconds.`;
 }
+
+export function getFirstValidationMessage(error: unknown): string | undefined {
+  if (!isAxiosError<Partial<ValidationErrorBody>>(error)) return undefined;
+  const messages = Object.values(error.response?.data?.errors ?? {});
+  return messages[0]?.[0];
+}
+
+export function getActionErrorMessage(error: unknown): string {
+  if (isStatus(error, 403)) return "You don't have permission to do that.";
+  if (isStatus(error, 422) && isAxiosError<Partial<ValidationErrorBody>>(error)) {
+    const message = getFirstValidationMessage(error) ?? error.response?.data?.message;
+    if (message) return message;
+  }
+  return 'Something went wrong. Try again.';
+}
