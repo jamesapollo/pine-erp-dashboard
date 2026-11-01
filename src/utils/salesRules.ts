@@ -41,6 +41,7 @@ export function getDeliveryActions(
 }
 
 export type OrderActions = ReturnType<typeof getOrderActions>;
+export type DeliveryActions = ReturnType<typeof getDeliveryActions>;
 
 /** True when a stock hold runs out within the next six hours (and has not already). */
 export function isHoldEndingSoon(holdExpiresAt: string | null, now: Date = new Date()): boolean {

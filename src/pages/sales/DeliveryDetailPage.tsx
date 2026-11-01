@@ -1,12 +1,18 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowRight, CircleAlert } from 'lucide-react';
+import { ArrowRight, CircleAlert, MessageSquarePlus, Pencil } from 'lucide-react';
 
 import { type Delivery } from '@/types/sales';
 import { useDeliveryQuery } from '@/hooks/api/queries/sales/useDeliveryQuery';
+import { useAuthedSession } from '@/hooks/useAuthedSession';
+import { AddDeliveryNoteDialog } from '@/components/sales/AddDeliveryNoteDialog';
+import { CompleteOrderCard } from '@/components/sales/CompleteOrderCard';
+import { DeliveryHeaderActions } from '@/components/sales/DeliveryHeaderActions';
 import { DeliveryOrderCard } from '@/components/sales/DeliveryOrderCard';
 import { DeliveryStatusCard } from '@/components/sales/DeliveryStatusCard';
 import { DeliveryTimelineCard } from '@/components/sales/DeliveryTimelineCard';
 import { DeliveryTrackingCard } from '@/components/sales/DeliveryTrackingCard';
+import { DeliveryTrackingDialog } from '@/components/sales/DeliveryTrackingDialog';
 import { Alert } from '@/components/ui/Alert';
 import { BackLink } from '@/components/ui/BackLink';
 import { Button } from '@/components/ui/Button';
@@ -20,6 +26,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { isStatus } from '@/utils/apiErrors';
 import { formatMovementTime } from '@/utils/movementTime';
+import { getDeliveryActions } from '@/utils/salesRules';
 import { buildOrderPath, ROUTES } from '@/constants/routes';
 
 const FAILED_ADVICE =
@@ -70,11 +77,15 @@ function PreparingBanner({ delivery }: { delivery: Delivery }) {
 }
 
 function DeliveryDetailContent({ delivery }: { delivery: Delivery }) {
+  const { hasPermission } = useAuthedSession();
+  const canManage = hasPermission('orders.manage');
+  const actions = getDeliveryActions(delivery, canManage);
+  const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
+  const [isTrackingDialogOpen, setIsTrackingDialogOpen] = useState(false);
   const isPickup = delivery.method === 'pickup';
 
   return (
     <>
-      {/* Header actions (mark in transit, delivered, failed, returned, retry) go in `actions`. */}
       <PageHeader
         back={<BackLink to={ROUTES.DELIVERIES}>Deliveries</BackLink>}
         title={
@@ -84,18 +95,53 @@ function DeliveryDetailContent({ delivery }: { delivery: Delivery }) {
         }
         titleAside={<CopyButton value={delivery.order_reference} label="Copy reference" />}
         sub={`${isPickup ? 'Pickup' : 'Courier'} · last update ${formatMovementTime(delivery.updated_at)}`}
+        actions={<DeliveryHeaderActions delivery={delivery} actions={actions} />}
       />
-      {/* The complete-order card for a delivered parcel goes here, above the banners and grid. */}
+      {canManage && delivery.status === 'delivered' ? (
+        <CompleteOrderCard delivery={delivery} />
+      ) : null}
       {delivery.status === 'failed' ? <FailedBanner delivery={delivery} /> : null}
       {delivery.status === 'preparing' ? <PreparingBanner delivery={delivery} /> : null}
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-        <DeliveryTimelineCard delivery={delivery} />
+        <DeliveryTimelineCard
+          delivery={delivery}
+          actions={
+            actions.canAddNote ? (
+              <Button size="sm" variant="secondary" onClick={() => setIsNoteDialogOpen(true)}>
+                <Icon icon={MessageSquarePlus} size={14} />
+                Add note
+              </Button>
+            ) : null
+          }
+        />
         <div className="flex min-w-0 flex-col gap-4">
           <DeliveryStatusCard delivery={delivery} />
-          {isPickup ? null : <DeliveryTrackingCard delivery={delivery} />}
+          {isPickup ? null : (
+            <DeliveryTrackingCard
+              delivery={delivery}
+              actions={
+                actions.canEditTracking ? (
+                  <Button size="sm" variant="ghost" onClick={() => setIsTrackingDialogOpen(true)}>
+                    <Icon icon={Pencil} size={14} />
+                    Edit
+                  </Button>
+                ) : null
+              }
+            />
+          )}
           <DeliveryOrderCard delivery={delivery} />
         </div>
       </div>
+      {isNoteDialogOpen ? (
+        <AddDeliveryNoteDialog delivery={delivery} onClose={() => setIsNoteDialogOpen(false)} />
+      ) : null}
+      {isTrackingDialogOpen ? (
+        <DeliveryTrackingDialog
+          mode="edit"
+          delivery={delivery}
+          onClose={() => setIsTrackingDialogOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

@@ -22,10 +22,24 @@ export function storeDeliveryResponse(
   void queryClient.invalidateQueries({ queryKey: [...queryKeys.orders(storeId), 'list'] });
 }
 
-// A null clears the field.
+/**
+ * A 409 means the delivery moved on, so load it (and the orders that embed it) again.
+ */
+export function refetchDeliveryOnConflict(
+  queryClient: QueryClient,
+  storeId: number,
+  deliveryId: number,
+  error: unknown,
+): void {
+  if (!isStatus(error, 409)) return;
+  void queryClient.invalidateQueries({ queryKey: queryKeys.delivery(storeId, deliveryId) });
+  void queryClient.invalidateQueries({ queryKey: queryKeys.orders(storeId) });
+}
+
+// A null clears the field; a field left out keeps its value.
 export type UpdateDeliveryTrackingMutationParams = {
-  courier_id: number | null;
-  tracking_number: string | null;
+  courier_id?: number | null;
+  tracking_number?: string | null;
 };
 
 export async function updateDeliveryTracking(
@@ -40,8 +54,7 @@ export async function updateDeliveryTracking(
   return data.data;
 }
 
-// Errors are shown where the edit happened. A 409 means the delivery moved on, so load it (and
-// the orders that embed it) again.
+// Errors are shown where the edit happened.
 export function useUpdateDeliveryTrackingMutation(deliveryId: number) {
   const { store } = useAuthedSession();
   const queryClient = useQueryClient();
@@ -49,10 +62,6 @@ export function useUpdateDeliveryTrackingMutation(deliveryId: number) {
     mutationFn: (params: UpdateDeliveryTrackingMutationParams) =>
       updateDeliveryTracking(store.id, deliveryId, params),
     onSuccess: (delivery) => storeDeliveryResponse(queryClient, store.id, delivery),
-    onError: (error) => {
-      if (!isStatus(error, 409)) return;
-      void queryClient.invalidateQueries({ queryKey: queryKeys.delivery(store.id, deliveryId) });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.orders(store.id) });
-    },
+    onError: (error) => refetchDeliveryOnConflict(queryClient, store.id, deliveryId, error),
   });
 }
