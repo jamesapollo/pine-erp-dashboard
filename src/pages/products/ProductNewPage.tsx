@@ -1,5 +1,5 @@
-import { PageHeader } from '@/components/ui/PageHeader';
+import { ProductNewForm } from '@/components/products/ProductNewForm';
 
 export function ProductNewPage() {
-  return <PageHeader title="New product" />;
+  return <ProductNewForm />;
 }
