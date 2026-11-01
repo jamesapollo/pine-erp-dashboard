@@ -1,8 +1,10 @@
-import { useSession } from '@/hooks/useSession';
-import { type Session } from '@/types/session';
+import {
+  type AuthedSession,
+  useAuthedSessionContext,
+} from '@/components/auth/AuthedSessionContext';
 
-export function useAuthedSession(): Extract<Session, { status: 'authed' }> {
-  const session = useSession();
-  if (session.status !== 'authed') throw new Error('useAuthedSession used outside ProtectedRoute');
+export function useAuthedSession(): AuthedSession {
+  const session = useAuthedSessionContext();
+  if (!session) throw new Error('useAuthedSession used outside ProtectedRoute');
   return session;
 }

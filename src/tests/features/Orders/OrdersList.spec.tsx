@@ -239,6 +239,20 @@ describe('Orders list', () => {
     expect(screen.queryByText(/No orders yet/)).not.toBeInTheDocument();
   });
 
+  it('shows the empty message for an empty page that is not past the end', async () => {
+    server.use(
+      http.get(mockEndpoints.me, () => HttpResponse.json({ data: buildUserFixture() })),
+      http.get(mockEndpoints.orders, () =>
+        HttpResponse.json(buildPaginated([], { total: 30, last_page: 2, current_page: 2 })),
+      ),
+    );
+    const { router } = customRenderAtRoute({ url: '/orders?page=2' });
+
+    expect(await screen.findByText(/No orders yet/)).toBeVisible();
+    expect(screen.queryByRole('status', { name: 'Loading orders' })).not.toBeInTheDocument();
+    expect(router.state.location.search).toBe('?page=2');
+  });
+
   it('keeps the filters and offers a retry when the list fails', async () => {
     respondWithOrders([buildOrderListItemFixture()]);
     let shouldFail = true;

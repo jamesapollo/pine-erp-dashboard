@@ -33,13 +33,16 @@ export function OrdersPage() {
   const ordersData = ordersQuery.data;
   // A stale or hand-edited page number past the end: move to the last page instead of
   // claiming there are no orders.
-  const isPastLastPage =
-    ordersData !== undefined && ordersData.data.length === 0 && ordersData.meta.total > 0;
   const lastPage = ordersData?.meta.last_page ?? 1;
+  const isPastLastPage =
+    ordersData !== undefined &&
+    ordersData.data.length === 0 &&
+    ordersData.meta.total > 0 &&
+    page > lastPage;
 
   useEffect(() => {
-    if (isPastLastPage && page > lastPage) setPage(lastPage, true);
-  }, [isPastLastPage, page, lastPage, setPage]);
+    if (isPastLastPage) setPage(lastPage, true);
+  }, [isPastLastPage, lastPage, setPage]);
 
   let table;
   if (ordersQuery.isPending || isPastLastPage) {

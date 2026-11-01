@@ -2,6 +2,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
 import { useSession } from '@/hooks/useSession';
 import { useSignOut } from '@/hooks/useSignOut';
+import { AuthedSessionContextProvider } from '@/components/auth/AuthedSessionContext';
 import { NoStoreAccess } from '@/components/auth/NoStoreAccess';
 import { SessionStatusScreen } from '@/components/auth/SessionStatusScreen';
 import { ROUTES } from '@/constants/routes';
@@ -27,6 +28,10 @@ export function ProtectedRoute() {
     case 'no-store':
       return <NoStoreAccess onSignOut={() => void signOut()} hasSignOutFailed={hasFailed} />;
     case 'authed':
-      return <Outlet />;
+      return (
+        <AuthedSessionContextProvider session={session}>
+          <Outlet />
+        </AuthedSessionContextProvider>
+      );
   }
 }

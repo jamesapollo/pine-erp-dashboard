@@ -56,18 +56,27 @@ describe('Session', () => {
     expect(router.state.location.pathname).toBe('/reset-password');
   });
 
-  it('sends the user to login when a request comes back 401 mid-session', async () => {
-    respondWithUser();
-    server.use(
-      http.get('/api/v1/stores/1', () =>
-        HttpResponse.json({ message: 'Unauthenticated.' }, { status: 401 }),
-      ),
-    );
-    const { router } = customRenderAtRoute({ url: '/' });
-    expect(await screen.findByRole('heading', { name: 'Overview' })).toBeVisible();
+  it.each([
+    { url: '/', sentinel: 'Overview' },
+    { url: '/orders', sentinel: 'Orders' },
+    { url: '/products', sentinel: 'Products' },
+  ])(
+    'sends the user to login when a request comes back 401 mid-session on $url',
+    async ({ url, sentinel }) => {
+      respondWithUser();
+      server.use(
+        http.get('/api/v1/stores/1', () =>
+          HttpResponse.json({ message: 'Unauthenticated.' }, { status: 401 }),
+        ),
+      );
+      const { router } = customRenderAtRoute({ url });
+      expect(await screen.findByRole('heading', { name: sentinel })).toBeVisible();
 
-    await expect(axiosInstance.get('/api/v1/stores/1')).rejects.toThrow();
+      await expect(axiosInstance.get('/api/v1/stores/1')).rejects.toThrow();
 
-    await waitFor(() => expect(router.state.location.pathname).toBe('/login'));
-  });
+      await waitFor(() => expect(router.state.location.pathname).toBe('/login'));
+      expect(screen.queryByText('Unexpected Application Error!')).not.toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'Sign in' })).toBeVisible();
+    },
+  );
 });
