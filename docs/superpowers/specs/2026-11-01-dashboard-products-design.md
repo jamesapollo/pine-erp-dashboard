@@ -184,7 +184,7 @@ Left column:
 Right column:
 - Visibility card: status row, "Featured on homepage" switch (disabled unless published, as the design), the
   one-line explanation per status from the design.
-- Pricing card: Base price, Price range across active variants' `effective_price` ("KES 4,500.00" or
+- Pricing card: Base price (an input, "KES" prefix — the only place to set it after creation; part of Save), Price range across active variants' `effective_price` ("KES 4,500.00" or
   "KES 4,500.00 – 5,200.00").
 - Inventory card: On hand (sum of `stock.on_hand`), Held in pending orders (sum of `stock.reserved`), Out of stock
   variants (active variants with `available ≤ 0`), and the design's low/sold-out line. No Adjust button.
@@ -271,3 +271,4 @@ structure, debounce mechanics, exact empty-state copy beyond what's written here
 10. Client-side price floor is 0.01; the store's minimum comes back as the API's own error.
 11. 403s show fixed copy (the API's message is just "Forbidden").
 12. The category filter doesn't include subcategories.
+13. Base price is editable in the Pricing card on the detail page (the design has no field for it, but publishing needs it).
