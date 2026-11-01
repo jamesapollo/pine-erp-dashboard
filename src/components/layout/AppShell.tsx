@@ -10,9 +10,14 @@ export function AppShell() {
 
   return (
     <div className="flex min-h-screen bg-surface-app">
-      <Sidebar store={session.store} user={session.user} roles={session.roles} />
+      <Sidebar
+        store={session.store}
+        user={session.user}
+        roles={session.roles}
+        permissions={session.permissions}
+      />
       <div className="min-w-0 flex-1">
-        <Topbar title="Overview" />
+        <Topbar />
         <main className="mx-auto max-w-[1240px] px-8 pb-16 pt-7">
           <Outlet />
         </main>

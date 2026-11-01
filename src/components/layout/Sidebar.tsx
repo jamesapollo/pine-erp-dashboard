@@ -1,4 +1,4 @@
-import { LayoutDashboard, LogOut } from 'lucide-react';
+import { LayoutDashboard, LogOut, Package } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 import { type StoreSummary, type User } from '@/types/session';
@@ -14,10 +14,12 @@ export function Sidebar({
   store,
   user,
   roles,
+  permissions,
 }: {
   store: StoreSummary;
   user: User;
   roles: string[];
+  permissions: string[];
 }) {
   const { signOut, isSigningOut, hasFailed } = useSignOut();
   const [primaryRole = ''] = roles;
@@ -60,6 +62,35 @@ export function Sidebar({
             </>
           )}
         </NavLink>
+        {permissions.includes('catalogue.view') ? (
+          <div className="mt-4">
+            <div className="px-2.5 pb-1.5 text-[length:var(--text-2xs)] font-semibold uppercase tracking-[var(--tracking-caps)] text-text-tertiary">
+              Catalogue
+            </div>
+            <NavLink
+              to={ROUTES.PRODUCTS}
+              className={({ isActive }) =>
+                cn(
+                  'flex h-[34px] w-full items-center gap-2.5 rounded-control px-2.5 text-left text-sm font-medium leading-none',
+                  isActive
+                    ? 'bg-surface-card text-text-primary shadow-[var(--shadow-sm),0_0_0_1px_var(--border-default)]'
+                    : 'text-text-secondary hover:bg-neutral-100',
+                )
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <Icon
+                    icon={Package}
+                    size={18}
+                    className={isActive ? 'text-brand-600' : undefined}
+                  />
+                  <span className="flex-1">Products</span>
+                </>
+              )}
+            </NavLink>
+          </div>
+        ) : null}
       </nav>
       {hasFailed ? (
         <div className="px-3 pb-2">
