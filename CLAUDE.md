@@ -7,6 +7,11 @@ A reference guide for developers working on this codebase. Covers architecture, 
 > tool. The `<uuid>` in the URL is the `projectId`: call `get_project` to check it, `list_files` to see what's in it,
 > and `get_file` to read the files you need.
 
+> **Finishing a branch:** when a feature branch is done and its tests pass, merge it into `main` locally
+> (`git checkout main && git merge <branch>`), run the tests on the merged result, then delete the branch. Do not
+> push or open a pull request, and do not ask which integration option to use. This applies to this repo and to the
+> API repo (`../commerce-erp-api`).
+
 ---
 
 ## Table of Contents
