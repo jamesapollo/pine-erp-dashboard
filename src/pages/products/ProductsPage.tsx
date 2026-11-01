@@ -11,7 +11,6 @@ import {
 import { useProductStatusCountsQuery } from '@/hooks/api/queries/catalogue/useProductStatusCountsQuery';
 import { useAuthedSession } from '@/hooks/useAuthedSession';
 import { useProductListFilters } from '@/hooks/useProductListFilters';
-import { Pagination } from '@/components/products/Pagination';
 import { ProductsTable } from '@/components/products/ProductsTable';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
@@ -20,6 +19,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { NoAccess } from '@/components/ui/NoAccess';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Pagination } from '@/components/ui/Pagination';
 import { Select } from '@/components/ui/Select';
 import { Spinner } from '@/components/ui/Spinner';
 import { Tabs } from '@/components/ui/Tabs';

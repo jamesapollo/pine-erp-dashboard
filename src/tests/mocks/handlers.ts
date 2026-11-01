@@ -16,4 +16,5 @@ export const handlers = [
   http.get(mockEndpoints.optionTypes, () => HttpResponse.json({ data: [] })),
   http.get(mockEndpoints.categories, () => HttpResponse.json({ data: [] })),
   http.get(mockEndpoints.stockMovements, () => HttpResponse.json(buildPaginated([]))),
+  http.get(mockEndpoints.orders, () => HttpResponse.json(buildPaginated([]))),
 ];

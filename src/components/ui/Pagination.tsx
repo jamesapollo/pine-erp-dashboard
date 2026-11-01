@@ -5,11 +5,14 @@ export function Pagination({
   perPage,
   total,
   onPageChange,
+  shouldPrefixShowing = false,
 }: {
   page: number;
   perPage: number;
   total: number;
   onPageChange: (page: number) => void;
+  /** Reads "Showing 1–25 of 30" rather than "1–25 of 30". */
+  shouldPrefixShowing?: boolean;
 }) {
   if (total <= perPage) return null;
   const last = Math.min(page * perPage, total);
@@ -18,6 +21,7 @@ export function Pagination({
   return (
     <div className="flex items-center justify-between gap-4 border-t border-border-subtle px-5 py-3">
       <span className="text-[13px] tabular-nums text-text-tertiary">
+        {shouldPrefixShowing ? 'Showing ' : ''}
         {first}–{last} of {total}
       </span>
       <div className="flex gap-2">
