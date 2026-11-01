@@ -1,10 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { type Product } from '@/types/catalogue';
-import { queryKeys } from '@/hooks/api/queryKeys';
+import { storeProductResponse } from '@/hooks/api/mutations/catalogue/useUpdateProductMutation';
 import { useAuthedSession } from '@/hooks/useAuthedSession';
 import { useToastContext } from '@/components/ui/ToastContext';
-import { getActionErrorMessage } from '@/utils/apiErrors';
 import { axiosInstance } from '@/utils/axiosConfig';
 import { storePath } from '@/utils/storePath';
 
@@ -15,6 +14,7 @@ export async function publishProduct(storeId: number, productId: number): Promis
   return data.data;
 }
 
+// Failures are left to the caller: the detail page shows the API's message in its alert.
 export function usePublishProductMutation() {
   const { store } = useAuthedSession();
   const queryClient = useQueryClient();
@@ -22,11 +22,8 @@ export function usePublishProductMutation() {
   return useMutation({
     mutationFn: (productId: number) => publishProduct(store.id, productId),
     onSuccess: async (product) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.products(store.id) });
+      await storeProductResponse(queryClient, store.id, product);
       showToast({ title: 'Product published', description: product.title });
-    },
-    onError: (error) => {
-      showToast({ title: getActionErrorMessage(error), tone: 'danger' });
     },
   });
 }
