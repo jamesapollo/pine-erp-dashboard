@@ -9,14 +9,19 @@ import { storePath } from '@/utils/storePath';
 
 /**
  * Puts a delivery the API just returned into its detail cache and marks the store's delivery
- * lists, its order and the order lists stale (the order embeds the delivery).
+ * lists, its order and the order lists stale (the order embeds the delivery). A delivery reload
+ * already in flight is cancelled so its older answer can't land on top. If an order mutation
+ * follows (dispatch after a tracking edit), its storeOrderResponse cancels the order reload
+ * started here.
  */
 export function storeDeliveryResponse(
   queryClient: QueryClient,
   storeId: number,
   delivery: Delivery,
 ): void {
-  queryClient.setQueryData(queryKeys.delivery(storeId, delivery.id), delivery);
+  const deliveryKey = queryKeys.delivery(storeId, delivery.id);
+  void queryClient.cancelQueries({ queryKey: deliveryKey });
+  queryClient.setQueryData(deliveryKey, delivery);
   void queryClient.invalidateQueries({ queryKey: [...queryKeys.deliveries(storeId), 'list'] });
   void queryClient.invalidateQueries({ queryKey: queryKeys.order(storeId, delivery.order_id) });
   void queryClient.invalidateQueries({ queryKey: [...queryKeys.orders(storeId), 'list'] });

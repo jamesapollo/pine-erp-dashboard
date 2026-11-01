@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 
 import { type Courier, type Order, type OrderDelivery } from '@/types/sales';
 import { customRenderAtRoute } from '@/tests/customRender';
@@ -311,6 +311,53 @@ describe('Dispatch order', () => {
     await findToast('Order dispatched');
     expect(requests).toEqual(['tracking', 'dispatch']);
     expect(trackingBody).toEqual({ courier_id: 2, tracking_number: 'KE88213' });
+  });
+
+  it('keeps the dispatched order when an order reload from the tracking edit lands later', async () => {
+    const state = respondWith(
+      buildConfirmedOrder({
+        delivery_status: 'preparing',
+        delivery: buildOrderDeliveryFixture({ id: 7, courier_name: 'Swift Riders' }),
+      }),
+    );
+    const reload = { isSlow: false, hasLanded: false };
+    server.use(
+      // Once tracking is saved, the order reload answers with the order as it was when asked,
+      // and only after the dispatch has come back.
+      http.get(mockEndpoints.order, async () => {
+        const order = state.order;
+        if (!reload.isSlow) return HttpResponse.json({ data: order });
+        await delay(300);
+        reload.hasLanded = true;
+        return HttpResponse.json({ data: order });
+      }),
+      http.get(mockEndpoints.delivery, () =>
+        HttpResponse.json({ data: buildDeliveryFixture({ id: 7, order_id: 12, courier_id: 1 }) }),
+      ),
+      http.patch(mockEndpoints.deliveryTracking, () => {
+        reload.isSlow = true;
+        return HttpResponse.json({
+          data: buildDeliveryFixture({ id: 7, order_id: 12, courier_id: 2 }),
+        });
+      }),
+      http.post(mockEndpoints.orderDispatch, () => {
+        state.order = buildDispatchedOrder({ id: 7, courier_name: 'G4S Courier' });
+        return HttpResponse.json({ data: state.order });
+      }),
+    );
+    customRenderAtRoute({ url: '/orders/12' });
+
+    const { user, dialog } = await openDispatchDialog();
+    await user.selectOptions(await dialog.findByRole('combobox', { name: 'Courier' }), '2');
+    await user.click(dialog.getByRole('button', { name: 'Dispatch' }));
+    await findToast('Order dispatched');
+    await waitFor(() => expect(reload.hasLanded).toBe(true));
+    await delay(50);
+
+    const progress = within(screen.getByRole('group', { name: 'Order progress' }));
+    expect(
+      progress.getByText('Dispatched').closest('[data-state]')?.getAttribute('data-state'),
+    ).toBe('current');
   });
 
   it('dispatches an existing delivery straight away when nothing changed', async () => {

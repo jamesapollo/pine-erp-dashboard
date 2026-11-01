@@ -10,10 +10,14 @@ import { storePath } from '@/utils/storePath';
 
 /**
  * Puts an order the API just returned into its detail cache and marks the store's order lists
- * (with their counts) and deliveries stale. The detail query keeps the response as it is.
+ * (with their counts) and deliveries stale. The detail query keeps the response as it is: a
+ * reload already in flight (say from a tracking edit just before) is cancelled so its older
+ * answer can't land on top.
  */
 export function storeOrderResponse(queryClient: QueryClient, storeId: number, order: Order): void {
-  queryClient.setQueryData(queryKeys.order(storeId, order.id), order);
+  const orderKey = queryKeys.order(storeId, order.id);
+  void queryClient.cancelQueries({ queryKey: orderKey });
+  queryClient.setQueryData(orderKey, order);
   void queryClient.invalidateQueries({ queryKey: [...queryKeys.orders(storeId), 'list'] });
   void queryClient.invalidateQueries({ queryKey: queryKeys.deliveries(storeId) });
 }

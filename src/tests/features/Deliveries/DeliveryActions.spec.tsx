@@ -1,6 +1,7 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
+import { focusManager } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 
 import { type Delivery, type Order } from '@/types/sales';
 import { customRenderAtRoute } from '@/tests/customRender';
@@ -99,6 +100,41 @@ async function findToast(title: string) {
 }
 
 describe('Delivery actions', () => {
+  afterEach(() => {
+    focusManager.setFocused(undefined);
+  });
+
+  it('keeps an action result when a reload started before it lands later', async () => {
+    const user = userEvent.setup();
+    respondWith(buildDelivery());
+    const reload = { isSlow: false, hasLanded: false };
+    server.use(
+      http.get(mockEndpoints.delivery, async () => {
+        if (!reload.isSlow) return HttpResponse.json({ data: buildDelivery() });
+        await delay(300);
+        reload.hasLanded = true;
+        return HttpResponse.json({ data: buildDelivery() });
+      }),
+      http.post(mockEndpoints.deliveryInTransit, () =>
+        HttpResponse.json({
+          data: buildDelivery({ status: 'in_transit', status_label: 'In transit' }),
+        }),
+      ),
+    );
+    customRenderAtRoute({ url: '/deliveries/7' });
+    await findHeading();
+
+    reload.isSlow = true;
+    act(() => focusManager.setFocused(false));
+    act(() => focusManager.setFocused(true));
+    await user.click(getMain().getByRole('button', { name: 'Mark in transit' }));
+    await findToast('Marked in transit');
+    await waitFor(() => expect(reload.hasLanded).toBe(true));
+    await delay(50);
+
+    expect(getMain().queryByRole('button', { name: 'Mark in transit' })).not.toBeInTheDocument();
+  });
+
   it('offers in transit, failed and delivered on a dispatched courier delivery', async () => {
     const user = userEvent.setup();
     respondWith(buildDelivery());
