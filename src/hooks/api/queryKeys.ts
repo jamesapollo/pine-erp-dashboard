@@ -28,6 +28,7 @@ export type DeliveryListFilters = {
 const products = (storeId: number) => ['stores', storeId, 'products'] as const;
 const orders = (storeId: number) => ['stores', storeId, 'orders'] as const;
 const deliveries = (storeId: number) => ['stores', storeId, 'deliveries'] as const;
+const allStockMovements = (storeId: number) => ['stores', storeId, 'stock-movements'] as const;
 
 export const queryKeys = {
   me: ['me'],
@@ -38,8 +39,9 @@ export const queryKeys = {
     [...products(storeId), 'detail', productId] as const,
   optionTypes: (storeId: number) => ['stores', storeId, 'option-types'] as const,
   categories: (storeId: number) => ['stores', storeId, 'categories'] as const,
+  allStockMovements,
   stockMovements: (storeId: number, productId: number) =>
-    ['stores', storeId, 'stock-movements', productId] as const,
+    [...allStockMovements(storeId), productId] as const,
   orders,
   orderList: (storeId: number, filters: OrderListFilters) =>
     [...orders(storeId), 'list', filters] as const,

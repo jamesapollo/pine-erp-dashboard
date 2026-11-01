@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { type Order } from '@/types/sales';
 import { useOrderQuery } from '@/hooks/api/queries/sales/useOrderQuery';
+import { useAuthedSession } from '@/hooks/useAuthedSession';
 import { BuyerCard } from '@/components/sales/BuyerCard';
+import { DeliveryFeeDialog } from '@/components/sales/DeliveryFeeDialog';
 import { OrderActivityCard } from '@/components/sales/OrderActivityCard';
 import { OrderDeliveryCard } from '@/components/sales/OrderDeliveryCard';
+import { OrderHeaderActions } from '@/components/sales/OrderHeaderActions';
 import { OrderItemsCard } from '@/components/sales/OrderItemsCard';
 import { OrderStatusCard } from '@/components/sales/OrderStatusCard';
 import { PaymentCard } from '@/components/sales/PaymentCard';
@@ -19,9 +23,20 @@ import { Spinner } from '@/components/ui/Spinner';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { isStatus } from '@/utils/apiErrors';
 import { formatMovementTime } from '@/utils/movementTime';
+import { getOrderActions } from '@/utils/salesRules';
 import { ROUTES } from '@/constants/routes';
 
 function OrderDetailContent({ order }: { order: Order }) {
+  const { hasPermission } = useAuthedSession();
+  const [isFeeDialogOpen, setIsFeeDialogOpen] = useState(false);
+  const actions = getOrderActions(order, hasPermission('orders.manage'));
+
+  const feeAction = actions.canSetFee ? (
+    <Button variant="ghost" size="sm" onClick={() => setIsFeeDialogOpen(true)}>
+      {order.delivery_charge.pending_quote ? 'Set fee' : 'Change'}
+    </Button>
+  ) : null;
+
   return (
     <>
       <PageHeader
@@ -33,11 +48,12 @@ function OrderDetailContent({ order }: { order: Order }) {
         }
         titleAside={<CopyButton value={order.reference} label="Copy reference" />}
         sub={`Placed ${formatMovementTime(order.created_at)} · ${order.buyer_name}`}
+        actions={<OrderHeaderActions order={order} actions={actions} />}
       />
       <OrderStatusCard order={order} />
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-4">
-          <OrderItemsCard order={order} />
+          <OrderItemsCard order={order} feeAction={feeAction} />
           <OrderActivityCard order={order} />
         </div>
         <div className="flex min-w-0 flex-col gap-4">
@@ -46,6 +62,9 @@ function OrderDetailContent({ order }: { order: Order }) {
           <PaymentCard order={order} />
         </div>
       </div>
+      {isFeeDialogOpen ? (
+        <DeliveryFeeDialog order={order} onClose={() => setIsFeeDialogOpen(false)} />
+      ) : null}
     </>
   );
 }
