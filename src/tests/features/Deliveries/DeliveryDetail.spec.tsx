@@ -1,4 +1,5 @@
-import { screen, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
+import { focusManager } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
 
 import { type Delivery, type Order } from '@/types/sales';
@@ -75,6 +76,48 @@ function getCard(name: string) {
 }
 
 describe('Delivery detail', () => {
+  afterEach(() => {
+    focusManager.setFocused(undefined);
+  });
+
+  function countDeliveryRequests() {
+    const counter = { requestCount: 0 };
+    server.use(
+      http.get(mockEndpoints.delivery, () => {
+        counter.requestCount += 1;
+        return HttpResponse.json({ data: buildInTransitDelivery() });
+      }),
+    );
+    return counter;
+  }
+
+  it('loads the delivery again when the window regains focus', async () => {
+    respondWith(buildInTransitDelivery());
+    const counter = countDeliveryRequests();
+    customRenderAtRoute({ url: '/deliveries/7' });
+    await screen.findByRole('heading', { name: `Delivery ${ORDER_REFERENCE}` });
+    expect(counter.requestCount).toBe(1);
+
+    act(() => focusManager.setFocused(false));
+    act(() => focusManager.setFocused(true));
+
+    await waitFor(() => expect(counter.requestCount).toBe(2));
+  });
+
+  it('loads a cached delivery again when it is opened again', async () => {
+    respondWith(buildInTransitDelivery());
+    const counter = countDeliveryRequests();
+    const { router } = customRenderAtRoute({ url: '/deliveries/7' });
+    await screen.findByRole('heading', { name: `Delivery ${ORDER_REFERENCE}` });
+
+    await act(() => router.navigate('/nowhere'));
+    await screen.findByRole('heading', { name: 'Page not found' });
+    await act(() => router.navigate('/deliveries/7'));
+
+    await screen.findByRole('heading', { name: `Delivery ${ORDER_REFERENCE}` });
+    await waitFor(() => expect(counter.requestCount).toBe(2));
+  });
+
   it('shows the header with the order reference, method and last update', async () => {
     respondWith(buildInTransitDelivery());
     customRenderAtRoute({ url: '/deliveries/7' });

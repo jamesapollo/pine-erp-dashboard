@@ -26,6 +26,7 @@ export function useOrderQuery(orderId: number) {
   return useQuery({
     ...orderQueryOptions(store.id, orderId),
     enabled: Number.isInteger(orderId) && orderId > 0,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: 'always',
+    refetchOnMount: 'always',
   });
 }

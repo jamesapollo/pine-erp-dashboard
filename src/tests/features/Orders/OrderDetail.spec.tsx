@@ -1,4 +1,5 @@
-import { screen, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
+import { focusManager } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 
@@ -55,6 +56,49 @@ function getCard(name: string) {
 }
 
 describe('Order detail', () => {
+  afterEach(() => {
+    focusManager.setFocused(undefined);
+  });
+
+  it('loads the order again when the window regains focus', async () => {
+    respondWithOrder(buildConfirmedOrder());
+    let requestCount = 0;
+    server.use(
+      http.get(mockEndpoints.order, () => {
+        requestCount += 1;
+        return HttpResponse.json({ data: buildConfirmedOrder() });
+      }),
+    );
+    customRenderAtRoute({ url: '/orders/12' });
+    await screen.findByRole('heading', { name: 'Order ZN7K-Q4M2-X9TD' });
+    expect(requestCount).toBe(1);
+
+    act(() => focusManager.setFocused(false));
+    act(() => focusManager.setFocused(true));
+
+    await waitFor(() => expect(requestCount).toBe(2));
+  });
+
+  it('loads a cached order again when it is opened again', async () => {
+    respondWithOrder(buildConfirmedOrder());
+    let requestCount = 0;
+    server.use(
+      http.get(mockEndpoints.order, () => {
+        requestCount += 1;
+        return HttpResponse.json({ data: buildConfirmedOrder() });
+      }),
+    );
+    const { router } = customRenderAtRoute({ url: '/orders/12' });
+    await screen.findByRole('heading', { name: 'Order ZN7K-Q4M2-X9TD' });
+
+    await act(() => router.navigate('/nowhere'));
+    await screen.findByRole('heading', { name: 'Page not found' });
+    await act(() => router.navigate('/orders/12'));
+
+    await screen.findByRole('heading', { name: 'Order ZN7K-Q4M2-X9TD' });
+    await waitFor(() => expect(requestCount).toBe(2));
+  });
+
   it('shows the header, status and progress of a confirmed order', async () => {
     respondWithOrder(buildConfirmedOrder());
     customRenderAtRoute({ url: '/orders/12' });

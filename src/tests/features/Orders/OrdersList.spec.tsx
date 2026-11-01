@@ -1,4 +1,5 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
+import { focusManager } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 
@@ -40,6 +41,24 @@ function buildUserWithoutOrdersView() {
 }
 
 describe('Orders list', () => {
+  afterEach(() => {
+    focusManager.setFocused(undefined);
+  });
+
+  it('loads the list and its counts again when the window regains focus', async () => {
+    const requests = respondWithOrders([buildOrderListItemFixture()]);
+    customRenderAtRoute({ url: '/orders' });
+    await screen.findByRole('table');
+    await waitFor(() => expect(requests).toHaveLength(8));
+
+    act(() => focusManager.setFocused(false));
+    act(() => focusManager.setFocused(true));
+
+    // The list, the six tab counts and the sidebar's pending count each load once more.
+    await waitFor(() => expect(requests).toHaveLength(16));
+    expect(listRequests(requests)).toHaveLength(2);
+  });
+
   it('lists orders with buyer, zone, quote, statuses and total', async () => {
     respondWithOrders([
       buildOrderListItemFixture({

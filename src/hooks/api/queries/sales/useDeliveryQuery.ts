@@ -26,6 +26,7 @@ export function useDeliveryQuery(deliveryId: number) {
   return useQuery({
     ...deliveryQueryOptions(store.id, deliveryId),
     enabled: Number.isInteger(deliveryId) && deliveryId > 0,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: 'always',
+    refetchOnMount: 'always',
   });
 }

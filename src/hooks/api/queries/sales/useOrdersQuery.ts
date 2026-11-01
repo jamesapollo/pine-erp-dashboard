@@ -42,6 +42,6 @@ export function useOrdersQuery(filters: OrderListFilters) {
     ...ordersQueryOptions(store.id, filters),
     placeholderData: keepPreviousData,
     refetchInterval: ORDERS_REFETCH_INTERVAL_MILLISECONDS,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: 'always',
   });
 }

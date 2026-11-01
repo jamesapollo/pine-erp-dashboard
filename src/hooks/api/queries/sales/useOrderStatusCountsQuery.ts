@@ -28,7 +28,7 @@ export function useOrderStatusCountsQuery({
     queries: COUNTED_STATUSES.map((status) => ({
       ...ordersQueryOptions(store.id, { status, search, feePending, perPage: 1 }),
       refetchInterval: ORDERS_REFETCH_INTERVAL_MILLISECONDS,
-      refetchOnWindowFocus: true,
+      refetchOnWindowFocus: 'always',
     })),
   });
 

@@ -13,7 +13,7 @@ export function usePendingOrderCountQuery({ enabled }: { enabled: boolean }): nu
     ...ordersQueryOptions(store.id, { status: 'pending', perPage: 1 }),
     enabled,
     refetchInterval: ORDERS_REFETCH_INTERVAL_MILLISECONDS,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: 'always',
   });
   return data?.meta.total;
 }
