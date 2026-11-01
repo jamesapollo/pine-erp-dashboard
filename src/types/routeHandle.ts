@@ -1,4 +1,4 @@
 export type RouteHandle = {
   crumbs: string[];
-  trailingCrumb?: 'productName';
+  trailingCrumb?: 'productName' | 'orderReference' | 'deliveryReference';
 };

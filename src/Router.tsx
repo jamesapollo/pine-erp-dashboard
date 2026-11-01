@@ -16,6 +16,7 @@ import { OptionTypesPage } from '@/pages/products/OptionTypesPage';
 import { ProductDetailRoute } from '@/pages/products/ProductDetailRoute';
 import { ProductNewPage } from '@/pages/products/ProductNewPage';
 import { ProductsPage } from '@/pages/products/ProductsPage';
+import { OrderDetailRoute } from '@/pages/sales/OrderDetailRoute';
 import { OrdersPage } from '@/pages/sales/OrdersPage';
 import { type RouteHandle } from '@/types/routeHandle';
 
@@ -57,6 +58,14 @@ export const routes: RouteObject[] = [
                     path: ROUTES.ORDERS,
                     element: <OrdersPage />,
                     handle: { crumbs: ordersCrumbs } satisfies RouteHandle,
+                  },
+                  {
+                    path: ROUTES.ORDER_DETAIL,
+                    element: <OrderDetailRoute />,
+                    handle: {
+                      crumbs: ordersCrumbs,
+                      trailingCrumb: 'orderReference',
+                    } satisfies RouteHandle,
                   },
                 ],
               },
