@@ -31,6 +31,7 @@ import {
   type ProductDetailInput,
 } from '@/components/products/productDetailSchema';
 import { PricingCard } from '@/components/products/PricingCard';
+import { ProductImagesCard } from '@/components/products/ProductImagesCard';
 import { UnsavedChangesDialog } from '@/components/products/UnsavedChangesDialog';
 import { VisibilityCard } from '@/components/products/VisibilityCard';
 import { getActionErrorMessage, getFieldError, isStatus } from '@/utils/apiErrors';
@@ -241,7 +242,8 @@ export function ProductDetailForm({
         <div className="flex flex-wrap items-start gap-4">
           <div className="flex min-w-0 flex-[1.7_1_560px] flex-col gap-4">
             <ProductDetailsCard categories={categories} isReadOnly={isReadOnly} />
-            {/* The Images card goes here, then the tabbed Variants / Stock history card. */}
+            <ProductImagesCard product={product} />
+            {/* The tabbed Variants / Stock history card goes here. */}
           </div>
           <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-4">
             <VisibilityCard status={product.status} isReadOnly={isReadOnly} />

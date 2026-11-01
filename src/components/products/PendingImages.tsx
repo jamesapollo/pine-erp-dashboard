@@ -8,14 +8,14 @@ import { Card } from '@/components/ui/Card';
 import { FormErrorMessage } from '@/components/ui/FormErrorMessage';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
+import { type ProductNewInput } from '@/components/products/productNewSchema';
+import { cn } from '@/utils/cn';
 import {
   ACCEPTED_IMAGE_TYPES,
-  IMAGE_REJECTED_MESSAGE,
-  isAcceptedImage,
-  MAXIMUM_PRODUCT_IMAGES,
-  type ProductNewInput,
-} from '@/components/products/productNewSchema';
-import { cn } from '@/utils/cn';
+  MAX_PRODUCT_IMAGES,
+  TOO_MANY_IMAGES_MESSAGE,
+  validateImageFile,
+} from '@/utils/imageFiles';
 
 type PendingImage = { id: number; file: File; previewUrl: string };
 
@@ -49,15 +49,16 @@ export function PendingImages() {
   }
 
   function addFiles(files: File[]) {
-    const accepted = files.filter(isAcceptedImage);
-    const room = MAXIMUM_PRODUCT_IMAGES - pendingImages.length;
+    const rejection = files.map(validateImageFile).find(Boolean);
+    const accepted = files.filter((file) => validateImageFile(file) === undefined);
+    const room = MAX_PRODUCT_IMAGES - pendingImages.length;
     const added = accepted.slice(0, Math.max(room, 0)).map((file) => ({
       id: nextId.current++,
       file,
       previewUrl: URL.createObjectURL(file),
     }));
-    if (accepted.length < files.length) setError(IMAGE_REJECTED_MESSAGE);
-    else if (added.length < accepted.length) setError('A product can have at most 20 images.');
+    if (rejection) setError(rejection);
+    else if (added.length < accepted.length) setError(TOO_MANY_IMAGES_MESSAGE);
     else setError(undefined);
     if (added.length > 0) update([...pendingImages, ...added]);
   }
@@ -79,7 +80,7 @@ export function PendingImages() {
   }
 
   const openPicker = () => inputRef.current?.click();
-  const isFull = pendingImages.length >= MAXIMUM_PRODUCT_IMAGES;
+  const isFull = pendingImages.length >= MAX_PRODUCT_IMAGES;
 
   return (
     <Card

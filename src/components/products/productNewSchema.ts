@@ -1,21 +1,14 @@
 import { z } from 'zod';
 
+import { MAX_PRODUCT_IMAGES } from '@/utils/imageFiles';
 import { isValidPrice } from '@/utils/money';
 
 export const MAXIMUM_VARIANT_ROWS = 200;
-export const MAXIMUM_PRODUCT_IMAGES = 20;
-export const MAXIMUM_IMAGE_BYTES = 5 * 1024 * 1024;
-export const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-export const IMAGE_REJECTED_MESSAGE = 'Use a JPG, PNG or WebP image up to 5 MB.';
 
 const MAXIMUM_OPENING_STOCK = 1_000_000;
 const PRICE_FORMAT_MESSAGE = 'Enter a price like 4500 or 4500.50';
 
 export type SaveIntent = 'draft' | 'publish';
-
-export function isAcceptedImage(file: File): boolean {
-  return ACCEPTED_IMAGE_TYPES.includes(file.type) && file.size <= MAXIMUM_IMAGE_BYTES;
-}
 
 export function isValidOpeningStock(value: string): boolean {
   const trimmed = value.trim();
@@ -46,7 +39,7 @@ const baseSchema = z.object({
   optionTypeIds: z.array(z.number()),
   selectedValueIds: z.record(z.string(), z.array(z.number())),
   rows: z.record(z.string(), rowSchema),
-  images: z.array(z.instanceof(File)).max(MAXIMUM_PRODUCT_IMAGES),
+  images: z.array(z.instanceof(File)).max(MAX_PRODUCT_IMAGES),
 });
 
 export type ProductNewInput = z.infer<typeof baseSchema>;
