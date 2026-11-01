@@ -43,10 +43,10 @@ A reference guide for developers working on this codebase. Covers architecture, 
 
 ```
 src/
-├── components/     # UI components: ui/ (primitives), auth/, layout/, products/
+├── components/     # UI components: ui/ (primitives), auth/, layout/, products/, sales/
 ├── constants/      # Global constants (UPPER_CASE exports), e.g. routes.ts
 ├── hooks/          # Custom hooks (generic + API-specific)
-├── pages/          # Page-level route components (products/ holds the catalogue screens)
+├── pages/          # Page-level route components (products/ the catalogue screens, sales/ orders and deliveries)
 ├── styles/tokens/  # Design-token CSS copied verbatim from the Commerce ERP design system
 ├── tests/          # Test infra, fixtures, MSW handlers
 ├── types/          # TypeScript type definitions
@@ -59,7 +59,7 @@ src/
 - **Domain-organised types**: `/types/` mirrors the API schema structure.
 - **Centralised query config**: A single `QueryClient` in `/utils/queryClient.ts`.
 - **Session from the server**: the signed-in user comes from `useSession()`, which reads `GET /api/v1/me`. Nothing about auth is kept in browser storage.
-- **Store-scoped data**: catalogue and inventory requests go to `/api/v1/stores/{storeId}/…`, built with
+- **Store-scoped data**: catalogue, inventory and sales requests go to `/api/v1/stores/{storeId}/…`, built with
   `storePath(storeId, path)` (`/utils/storePath.ts`). The store id always comes from `useAuthedSession().store.id`.
 
 ---
@@ -71,9 +71,11 @@ src/
 ```
 components/
 ├── ui/        # Design-system primitives (Button, Input, Card, Alert, Icon, …)
-├── auth/      # Sign-in, forgot/reset forms, ProtectedRoute, GuestRoute, RequirePermission
+├── auth/      # Sign-in, forgot/reset forms, ProtectedRoute (+ AuthedSessionContext), GuestRoute, RequirePermission
 ├── layout/    # AuthLayout and the signed-in AppShell (Sidebar, Topbar)
-└── products/  # Catalogue screens' forms, cards, tables and dialogs (ProductNewForm, ProductDetailForm, …)
+├── products/  # Catalogue screens' forms, cards, tables and dialogs (ProductNewForm, ProductDetailForm, …)
+└── sales/     # Orders and deliveries: tables, detail cards, header actions and their dialogs (OrdersTable,
+               # OrderHeaderActions, DispatchOrderDialog, DeliveryHeaderActions, DeliveryTrackingDialog, …)
 ```
 
 ### UI primitives
@@ -81,23 +83,25 @@ components/
 Besides the originals (`Button`, `IconButton`, `Input`, `Card`, `Alert`, `Icon`, `Avatar`, `Spinner`, `EmptyState`,
 `TextLink`, `FormErrorMessage`), `components/ui/` holds:
 
-| Primitive                        | Use                                                                          |
-| -------------------------------- | ---------------------------------------------------------------------------- |
-| `Badge`, `StatusBadge`           | Tone pill; `StatusBadge kind="product"` maps a status to its tone and label  |
-| `Tabs`                           | Tab list (product list status filter, product detail Variants/Stock history) |
-| `Select`, `Textarea`, `Switch`   | `forwardRef` form controls; bind with `register` like `Input`                |
-| `Radio`                          | `forwardRef` radio with `label` and `description`; bind with `register`      |
-| `Timeline`                       | `<ol>` of `TimelineItem` (title, time, meta, note, tone, icon)               |
-| `LifecycleStepper`               | Step bars with `data-state` done/current/todo; `cancelled` greys the done    |
-| `Chip`                           | Toggle chip with `aria-pressed` (option value picker)                        |
-| `OrderRef`                       | Monospace reference text such as a SKU                                       |
-| `DataTable`                      | Generic `DataTable<Row>` with `columns`, `rows`, `getRowKey`, `caption`      |
-| `PageHeader`, `BackLink`         | Page title row with actions; back link above it                              |
-| `Dialog`                         | Modal dialog (confirmations, add category, add variant, …)                   |
-| `Toast` + `ToastContextProvider` | Notifications; call `useToastContext().showToast({ title, tone })`           |
-| `NoAccess`                       | The "no permission" screen rendered by `RequirePermission`                   |
+| Primitive                        | Use                                                                                               |
+| -------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `Badge`, `StatusBadge`           | Tone pill; `StatusBadge kind` (product, order, delivery, payment) maps a status to tone and label |
+| `Tabs`                           | Tab list (product list status filter, product detail Variants/Stock history)                      |
+| `Select`, `Textarea`, `Switch`   | `forwardRef` form controls; bind with `register` like `Input`                                     |
+| `Radio`                          | `forwardRef` radio with `label` and `description`; bind with `register`                           |
+| `Timeline`                       | `<ol>` of `TimelineItem` (title, time, meta, note, tone, icon)                                    |
+| `LifecycleStepper`               | Step bars with `data-state` done/current/todo; `cancelled` greys the done                         |
+| `Chip`                           | Toggle chip with `aria-pressed` (option value picker)                                             |
+| `OrderRef`, `CopyButton`         | Monospace reference text (SKU, order reference); copy-to-clipboard button                         |
+| `Pagination`                     | "Showing {from}–{to} of {total}" footer with previous/next (orders, deliveries)                   |
+| `DataTable`                      | Generic `DataTable<Row>` with `columns`, `rows`, `getRowKey`, `caption`                           |
+| `PageHeader`, `BackLink`         | Page title row with actions; back link above it                                                   |
+| `Dialog`                         | Modal dialog (confirmations, add category, add variant, …)                                        |
+| `Toast` + `ToastContextProvider` | Notifications; call `useToastContext().showToast({ title, tone })`                                |
+| `NoAccess`                       | The "no permission" screen rendered by `RequirePermission`                                        |
 
-Products sub-components keep form schemas next to the form (`productNewSchema.ts`, `productDetailSchema.ts`).
+Products and sales sub-components keep form schemas next to the form (`productNewSchema.ts`, `productDetailSchema.ts`,
+`cancelOrderSchema.ts`, `markDeliveryFailedSchema.ts`, …).
 
 ### Co-location rules
 
@@ -289,23 +293,33 @@ src/hooks/
 │   │   ├── auth/useMeQuery.ts                # fetcher + hook, one file
 │   │   ├── catalogue/                        # useProductsQuery, useProductQuery, useProductStatusCountsQuery,
 │   │   │                                     # useCategoriesQuery, useOptionTypesQuery
-│   │   └── inventory/useStockMovementsQuery.ts
+│   │   ├── inventory/useStockMovementsQuery.ts
+│   │   └── sales/                            # useOrdersQuery, useOrderQuery, useOrderStatusCountsQuery,
+│   │                                         # usePendingOrderCountQuery, useDeliveriesQuery, useDeliveryQuery,
+│   │                                         # useCouriersQuery
 │   └── mutations/
 │       ├── auth/                             # useSignInMutation, useSignOutMutation,
 │       │                                     # useForgotPasswordMutation, useResetPasswordMutation
 │       ├── catalogue/                        # products (create, update, publish, unpublish, archive),
 │       │                                     # variants, images (upload, delete, set main, reorder),
 │       │                                     # categories, option types and option values
-│       └── inventory/useCreateStockAdjustmentMutation.ts
+│       ├── inventory/useCreateStockAdjustmentMutation.ts
+│       └── sales/                            # orders (confirm, cancel, complete, delivery fee, create delivery,
+│                                             # dispatch); deliveries (in transit, delivered, failed, retry,
+│                                             # returned, add note, update tracking)
 ├── useSession.ts                             # the session union, derived from useMeQuery
 ├── useAuthedSession.ts                       # the 'authed' session, for screens under ProtectedRoute
 ├── useSignOut.ts                             # sign-out action shared by the shell
 ├── useCreateProductFlow.ts                   # add product: product, variants, stock, images, publish
-└── useProductListFilters.ts                  # products list filters kept in the URL search params
+├── useProductListFilters.ts                  # products list filters kept in the URL search params
+├── useOrderListFilters.ts                    # orders list filters (status, search, fee pending, page) in the URL
+└── useDeliveryListFilters.ts                 # deliveries list filters kept in the URL search params
 ```
 
-`useAuthedSession()` returns the `authed` member of `Session` and throws if used anywhere else, so it is only for
-components rendered inside `ProtectedRoute`. Store-scoped hooks read `store.id` from it:
+`useAuthedSession()` returns the `authed` session that `ProtectedRoute` provides through `AuthedSessionContext`
+(`components/auth/AuthedSessionContext.tsx`), and throws outside it, so it is only for components rendered inside
+`ProtectedRoute`. Reading the session from the route that decided to render the screen (not from the `me` query)
+keeps a screen consistent while a mid-session 401 signs the user out. Store-scoped hooks read `store.id` from it:
 
 ```typescript
 export function useProductQuery(productId: number) {
@@ -346,6 +360,11 @@ export const queryKeys = {
     ['stores', storeId, 'stock-movements', productId] as const,
 } as const;
 ```
+
+Sales keys follow the same shape: `orders(storeId)` prefixes `orderList` and `order`, `deliveries(storeId)` prefixes
+`deliveryList` and `delivery`, and `couriers(storeId)` stands alone. Order and delivery mutations write the returned
+resource into its detail cache (`storeOrderResponse`, `storeDeliveryResponse`) and invalidate the lists; after a 409
+they refetch the detail (`refetchOrderOnConflict`, `refetchDeliveryOnConflict`).
 
 ### Hook shape — queries
 
@@ -458,6 +477,25 @@ export const routes: RouteObject[] = [
               },
               {
                 element: (
+                  <RequirePermission slug="orders.view" message="You don't have access to orders." />
+                ),
+                children: [
+                  { path: ROUTES.ORDERS, element: <OrdersPage />, handle: { crumbs: ordersCrumbs } },
+                  // ROUTES.DELIVERIES (DeliveriesPage) follows the same shape
+                  {
+                    path: ROUTES.ORDER_DETAIL,
+                    element: <OrderDetailRoute />,
+                    handle: { crumbs: ordersCrumbs, trailingCrumb: 'orderReference' },
+                  },
+                  {
+                    path: ROUTES.DELIVERY_DETAIL,
+                    element: <DeliveryDetailRoute />,
+                    handle: { crumbs: deliveriesCrumbs, trailingCrumb: 'deliveryReference' },
+                  },
+                ],
+              },
+              {
+                element: (
                   <RequirePermission
                     slug="catalogue.view"
                     message="You don't have access to products."
@@ -508,28 +546,40 @@ export const ROUTES = {
   OPTION_TYPES: '/products/option-types',
   CATEGORIES: '/products/categories',
   PRODUCT_DETAIL: '/products/:productId',
+  ORDERS: '/orders',
+  ORDER_DETAIL: '/orders/:orderId',
+  DELIVERIES: '/deliveries',
+  DELIVERY_DETAIL: '/deliveries/:deliveryId',
   CATCH_ALL: '*',
 } as const;
 
 export function buildProductPath(productId: number): string {
   return `${ROUTES.PRODUCTS}/${productId}`;
 }
+// buildOrderPath(orderId) and buildDeliveryPath(deliveryId) follow the same shape.
 ```
 
-Never write a path string inline; use `ROUTES`, and `buildProductPath(id)` for a product's detail link. There is no sign-up route: staff accounts are created by an
+Never write a path string inline; use `ROUTES`, and `buildProductPath(id)`, `buildOrderPath(id)` or
+`buildDeliveryPath(id)` for a detail link. There is no sign-up route: staff accounts are created by an
 administrator.
 
 ### Breadcrumbs and permission gates
 
 - Every page route under `AppShell` carries a `handle` typed as `RouteHandle` (`/types/routeHandle.ts`): `crumbs`
-  for the `Topbar` breadcrumb, and `trailingCrumb: 'productName'` to append the loaded product's title.
+  for the `Topbar` breadcrumb, and `trailingCrumb` (`'productName'`, `'orderReference'` or `'deliveryReference'`) to
+  append the loaded product's title or the order's reference.
 - `RequirePermission` (`components/auth/RequirePermission.tsx`) is a layout route: it renders `<Outlet />` when
   `hasPermission(slug)` and otherwise `NoAccess` with the given message. The products screens sit under
-  `catalogue.view` with the fixed copy "You don't have access to products." It never signs the user out.
+  `catalogue.view` with the fixed copy "You don't have access to products."; the four sales screens (orders list and
+  detail, deliveries list and detail) under `orders.view` with "You don't have access to orders." It never signs the
+  user out.
 - Finer permissions are checked inside screens with `useAuthedSession().hasPermission(…)`: `catalogue.manage` for
   edits, `pricing.manage` for any `price` field (without it the request never carries a `price` key), and
-  `inventory.manage` for stock.
-- `ProductDetailRoute` renders `NotFoundPage` for a non-numeric `:productId` and `ProductDetailPage` otherwise.
+  `inventory.manage` for stock. `orders.manage` gates every order and delivery action (confirm, cancel, dispatch,
+  complete, delivery fee, delivery moves, notes, tracking edits); without it the sales screens are read-only. Which
+  action shows in which status comes from `getOrderActions` / `getDeliveryActions` (`/utils/salesRules.ts`).
+- `ProductDetailRoute` renders `NotFoundPage` for a non-numeric `:productId` and `ProductDetailPage` otherwise;
+  `OrderDetailRoute` and `DeliveryDetailRoute` do the same for `:orderId` and `:deliveryId`.
   `ProductDetailForm` uses `useBlocker` to ask "Discard changes?" before leaving with unsaved edits.
 
 ### Do not mock routing primitives
@@ -540,7 +590,8 @@ administrator.
 
 Routes carry no store or tenant identifier. The backend resolves the user from the session cookie, and the app reads
 the active store from the session. Never put a store id in a route or trust one from the URL. Inside `ProtectedRoute`, read the session with
-`useAuthedSession()` (`/hooks/useAuthedSession.ts`) rather than narrowing `useSession()` again.
+`useAuthedSession()` (`/hooks/useAuthedSession.ts`), which reads the authed session from the context
+`ProtectedRoute` provides, rather than narrowing `useSession()` again.
 
 `useSession()` (`/hooks/useSession.ts`) derives a discriminated union from `useMeQuery()`:
 
@@ -563,8 +614,8 @@ type Session =
 - The active store is the user's **first membership**. Only `useSession` may assume that; everything else reads
   `store`, `roles` and `permissions` from the session.
 - `ProtectedRoute` (`components/auth/ProtectedRoute.tsx`) shows a status screen while `loading`, a retry screen on
-  `error`, redirects `anon` to `ROUTES.LOGIN`, shows a no-access screen for `no-store`, and renders `<Outlet />` when
-  `authed`.
+  `error`, redirects `anon` to `ROUTES.LOGIN`, shows a no-access screen for `no-store`, and renders `<Outlet />`
+  inside `AuthedSessionContextProvider` when `authed`.
 - `GuestRoute` (`components/auth/GuestRoute.tsx`) owns the post-sign-in redirect: an `authed` user goes to
   `getSafeRedirectPath(?redirect)` (replace), a `no-store` user to `ROUTES.ROOT`. `LoginForm` does not navigate itself.
 - Auth actions are mutations (`useSignInMutation`, `useSignOutMutation`, `useForgotPasswordMutation`,
@@ -632,6 +683,7 @@ src/types/
 ├── catalogue.ts     # Money, Product, ProductListItem, ProductVariant, ProductImage, OptionType, Category,
 │                    # StockMovement, Paginated<T>
 ├── routeHandle.ts   # RouteHandle for route breadcrumbs
+├── sales.ts         # Order, OrderListItem, OrderLine, Delivery, DeliveryListItem, DeliveryTimelineEvent, Courier
 └── session.ts
 ```
 
@@ -755,9 +807,11 @@ None. No Datadog, LogRocket, Flagsmith or other third-party tracking is used.
 
 There is no router basename in tests (the app basename is `/`). Pass `url` as the app path: `'/'`, `'/login'`,
 `'/reset-password?token=…'`, `'/products/12'`. Fixtures live in `src/tests/fixtures/`: `buildUserFixture` (a `User`
-with a membership and the catalogue, pricing and inventory permissions) in `user.ts`, and in `catalogue.ts`
+with a membership and the catalogue, pricing, inventory and orders permissions) in `user.ts`, and in `catalogue.ts`
 `buildProductFixture`, `buildProductListItemFixture`, `buildVariantFixture`, `buildProductImageFixture`,
-`buildOptionTypeFixture`, `buildCategoryFixture`, `buildStockMovementFixture`, `buildMoney` and `buildPaginated`.
+`buildOptionTypeFixture`, `buildCategoryFixture`, `buildStockMovementFixture`, `buildMoney` and `buildPaginated`; in
+`sales.ts` `buildOrderFixture`, `buildOrderListItemFixture`, `buildOrderLineFixture`, `buildOrderDeliveryFixture`,
+`buildDeliveryFixture`, `buildDeliveryListItemFixture`, `buildDeliveryEventFixture` and `buildCourierFixture`.
 The MSW endpoint paths are in `src/tests/mocks/endpoints.ts` (`mockEndpoints`); the store-scoped ones use a
 `:storeId` parameter, e.g. `mockEndpoints.product` is `/api/v1/stores/:storeId/products/:productId`.
 

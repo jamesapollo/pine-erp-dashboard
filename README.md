@@ -23,20 +23,26 @@ The dev server serves the app at `/`. The proxy forwards `/api` and `/sanctum` f
 
 ## Screens
 
-| Path                     | Screen                                                                                      | Needs            |
-| ------------------------ | ------------------------------------------------------------------------------------------- | ---------------- |
-| `/login`                 | Sign in                                                                                     | signed out       |
-| `/forgot-password`       | Request a password reset link                                                               | signed out       |
-| `/reset-password`        | Choose a new password from a reset link                                                     | anyone           |
-| `/`                      | Overview                                                                                    | signed in        |
-| `/products`              | Products list: status tabs, search, category filter, pages                                  | `catalogue.view` |
-| `/products/new`          | Add product: details, options and variants, prices, opening stock, images, save or publish  | `catalogue.view` |
-| `/products/:productId`   | Product detail: edit, publish, unpublish, archive, restore, images, variants, stock history | `catalogue.view` |
-| `/products/option-types` | Option types and their values (e.g. Size: S, M)                                             | `catalogue.view` |
-| `/products/categories`   | Category tree                                                                               | `catalogue.view` |
+| Path                      | Screen                                                                                                            | Needs            |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `/login`                  | Sign in                                                                                                           | signed out       |
+| `/forgot-password`        | Request a password reset link                                                                                     | signed out       |
+| `/reset-password`         | Choose a new password from a reset link                                                                           | anyone           |
+| `/`                       | Overview                                                                                                          | signed in        |
+| `/products`               | Products list: status tabs, search, category filter, pages                                                        | `catalogue.view` |
+| `/products/new`           | Add product: details, options and variants, prices, opening stock, images, save or publish                        | `catalogue.view` |
+| `/products/:productId`    | Product detail: edit, publish, unpublish, archive, restore, images, variants, stock history                       | `catalogue.view` |
+| `/products/option-types`  | Option types and their values (e.g. Size: S, M)                                                                   | `catalogue.view` |
+| `/products/categories`    | Category tree                                                                                                     | `catalogue.view` |
+| `/orders`                 | Orders list: status tabs, search by reference or phone, fee-pending filter, pages                                 | `orders.view`    |
+| `/orders/:orderId`        | Order detail: confirm, cancel, set the delivery fee, dispatch, complete                                           | `orders.view`    |
+| `/deliveries`             | Deliveries list: status tabs, search by reference or tracking number, courier, pages                              | `orders.view`    |
+| `/deliveries/:deliveryId` | Delivery detail: in transit, delivered or collected, failed, retry, returned, notes, tracking, complete the order | `orders.view`    |
 
-Changing anything also needs `catalogue.manage`; prices need `pricing.manage` and stock needs `inventory.manage`.
+Changing products also needs `catalogue.manage`; prices need `pricing.manage` and stock needs `inventory.manage`.
 Without `catalogue.view` the products screens show "You don't have access to products."
+Order and delivery actions need `orders.manage`; without it the sales screens are read-only. Without `orders.view`
+they show "You don't have access to orders."
 
 ## Testing a reset link locally
 
