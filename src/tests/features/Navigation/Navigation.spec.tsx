@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 
 import { customRenderAtRoute } from '@/tests/customRender';
+import { buildProductFixture } from '@/tests/fixtures/catalogue';
 import { buildUserFixture } from '@/tests/fixtures/user';
 import { mockEndpoints } from '@/tests/mocks/endpoints';
 import { server } from '@/tests/mocks/server';
@@ -47,6 +48,23 @@ describe('Navigation', () => {
     customRenderAtRoute({ url: '/products/abc' });
 
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeVisible();
+    const breadcrumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(breadcrumb).getByText('Page not found')).toBeVisible();
+    expect(within(breadcrumb).queryByText('Products')).not.toBeInTheDocument();
+  });
+
+  it('shows the product name as the last breadcrumb on the product page', async () => {
+    respondWithUser();
+    server.use(
+      http.get(mockEndpoints.product, () =>
+        HttpResponse.json({ data: buildProductFixture({ id: 7, title: 'Kitenge shirt' }) }),
+      ),
+    );
+    customRenderAtRoute({ url: '/products/7' });
+
+    const breadcrumb = await screen.findByRole('navigation', { name: 'Breadcrumb' });
+    expect(await within(breadcrumb).findByText('Kitenge shirt')).toBeVisible();
+    expect(within(breadcrumb).getByText('Products')).toBeVisible();
   });
 
   it('shows the Overview breadcrumb on the root page', async () => {

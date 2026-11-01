@@ -2,6 +2,9 @@ import { ChevronRight } from 'lucide-react';
 import { Fragment } from 'react';
 import { useMatches } from 'react-router-dom';
 
+import { useProductQuery } from '@/hooks/api/queries/catalogue/useProductQuery';
+import { useAuthedSession } from '@/hooks/useAuthedSession';
+
 import { type RouteHandle } from '@/types/routeHandle';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/utils/cn';
@@ -12,12 +15,23 @@ function isRouteHandle(handle: unknown): handle is RouteHandle {
 
 export function Topbar() {
   const matches = useMatches();
-  const deepestHandle = matches
-    .map((match) => match.handle)
-    .filter(isRouteHandle)
-    .at(-1);
-  // The product name for the trailing 'productName' crumb is wired in once the product query exists.
-  const crumbs = deepestHandle?.crumbs ?? [];
+  const { hasPermission } = useAuthedSession();
+  const deepestMatch = matches.filter((match) => isRouteHandle(match.handle)).at(-1);
+  const deepestHandle = isRouteHandle(deepestMatch?.handle) ? deepestMatch.handle : undefined;
+
+  // A product route whose id isn't a number renders "Page not found", so its crumb says so too.
+  const productIdParam = deepestMatch?.params.productId;
+  const hasProductCrumb = deepestHandle?.trailingCrumb === 'productName';
+  const isValidProductId = productIdParam !== undefined && /^\d+$/.test(productIdParam);
+  const shouldLoadProduct = hasProductCrumb && isValidProductId && hasPermission('catalogue.view');
+  const productQuery = useProductQuery(shouldLoadProduct ? Number(productIdParam) : Number.NaN);
+
+  let crumbs = deepestHandle?.crumbs ?? [];
+  if (hasProductCrumb && !isValidProductId) {
+    crumbs = ['Page not found'];
+  } else if (hasProductCrumb && productQuery.data) {
+    crumbs = [...crumbs, productQuery.data.title];
+  }
 
   return (
     <header className="sticky top-0 z-10 flex h-topbar items-center gap-4 border-b border-border-default bg-white/85 px-8 backdrop-blur-[8px]">
