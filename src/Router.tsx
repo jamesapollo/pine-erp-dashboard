@@ -21,6 +21,7 @@ import { DeliveriesPage } from '@/pages/sales/DeliveriesPage';
 import { DeliveryDetailRoute } from '@/pages/sales/DeliveryDetailRoute';
 import { OrdersPage } from '@/pages/sales/OrdersPage';
 import { StockPage } from '@/pages/inventory/StockPage';
+import { DeliveryZonesPage } from '@/pages/store/DeliveryZonesPage';
 import { StockVariantRoute } from '@/pages/inventory/StockVariantRoute';
 import { type RouteHandle } from '@/types/routeHandle';
 
@@ -69,6 +70,11 @@ export const routes: RouteObject[] = [
                     path: ROUTES.DELIVERIES,
                     element: <DeliveriesPage />,
                     handle: { crumbs: deliveriesCrumbs } satisfies RouteHandle,
+                  },
+                  {
+                    path: ROUTES.DELIVERY_ZONES,
+                    element: <DeliveryZonesPage />,
+                    handle: { crumbs: ['Store', 'Delivery zones'] } satisfies RouteHandle,
                   },
                   {
                     path: ROUTES.DELIVERY_DETAIL,

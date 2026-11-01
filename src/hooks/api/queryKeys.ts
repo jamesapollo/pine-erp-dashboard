@@ -70,4 +70,5 @@ export const queryKeys = {
   delivery: (storeId: number, deliveryId: number) =>
     [...deliveries(storeId), 'detail', deliveryId] as const,
   couriers: (storeId: number) => ['stores', storeId, 'couriers'] as const,
+  deliveryZones: (storeId: number) => ['stores', storeId, 'delivery-zones'] as const,
 } as const;

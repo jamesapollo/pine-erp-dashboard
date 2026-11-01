@@ -43,11 +43,11 @@ A reference guide for developers working on this codebase. Covers architecture, 
 
 ```
 src/
-├── components/     # UI components: ui/ (primitives), auth/, layout/, products/, sales/, inventory/
+├── components/     # UI components: ui/ (primitives), auth/, layout/, products/, sales/, inventory/, store/
 ├── constants/      # Global constants (UPPER_CASE exports), e.g. routes.ts
 ├── hooks/          # Custom hooks (generic + API-specific)
 ├── pages/          # Page-level route components (products/ the catalogue screens, sales/ orders and deliveries,
-│                   # inventory/ the stock list and one variant's stock)
+│                   # inventory/ the stock list and one variant's stock, store/ delivery zones)
 ├── styles/tokens/  # Design-token CSS copied verbatim from the Commerce ERP design system
 ├── tests/          # Test infra, fixtures, MSW handlers
 ├── types/          # TypeScript type definitions
@@ -77,7 +77,9 @@ components/
 ├── products/  # Catalogue screens' forms, cards, tables and dialogs (ProductNewForm, ProductDetailForm, …)
 ├── sales/     # Orders and deliveries: tables, detail cards, header actions and their dialogs (OrdersTable,
 │              # OrderHeaderActions, DispatchOrderDialog, DeliveryHeaderActions, DeliveryTrackingDialog, …)
-└── inventory/ # Stock screens: StockLevelsTable, VariantTransactionsCard, StockAdjustDialog (+ stockAdjustSchema)
+├── inventory/ # Stock screens: StockLevelsTable, VariantTransactionsCard, StockAdjustDialog (+ stockAdjustSchema)
+└── store/     # Store settings: DeliveryZonesTable, CheckoutPreviewCard, DeliveryZoneDialog (+ deliveryZoneSchema),
+               # DeleteDeliveryZoneDialog, AddCountryDialog
 ```
 
 ### UI primitives
@@ -303,7 +305,7 @@ src/hooks/
 │   │   │                                     # useStockLevelQuery (one variant)
 │   │   └── sales/                            # useOrdersQuery, useOrderQuery, useOrderStatusCountsQuery,
 │   │                                         # usePendingOrderCountQuery, useDeliveriesQuery, useDeliveryQuery,
-│   │                                         # useCouriersQuery
+│   │                                         # useCouriersQuery, useDeliveryZonesQuery
 │   └── mutations/
 │       ├── auth/                             # useSignInMutation, useSignOutMutation,
 │       │                                     # useForgotPasswordMutation, useResetPasswordMutation
@@ -313,7 +315,8 @@ src/hooks/
 │       ├── inventory/useCreateStockAdjustmentMutation.ts
 │       └── sales/                            # orders (confirm, cancel, complete, delivery fee, create delivery,
 │                                             # dispatch); deliveries (in transit, delivered, failed, retry,
-│                                             # returned, add note, update tracking)
+│                                             # returned, add note, update tracking); delivery zones (save,
+│                                             # delete, reorder)
 ├── useSession.ts                             # the session union, derived from useMeQuery
 ├── useAuthedSession.ts                       # the 'authed' session, for screens under ProtectedRoute
 ├── useSignOut.ts                             # sign-out action shared by the shell
@@ -570,6 +573,7 @@ export const ROUTES = {
   DELIVERY_DETAIL: '/deliveries/:deliveryId',
   STOCK: '/inventory',
   STOCK_VARIANT: '/inventory/:variantId',
+  DELIVERY_ZONES: '/delivery-zones',
   CATCH_ALL: '*',
 } as const;
 
@@ -591,13 +595,14 @@ administrator.
 - `RequirePermission` (`components/auth/RequirePermission.tsx`) is a layout route: it renders `<Outlet />` when
   `hasPermission(slug)` and otherwise `NoAccess` with the given message. The products screens sit under
   `catalogue.view` with the fixed copy "You don't have access to products."; the four sales screens (orders list and
-  detail, deliveries list and detail) under `orders.view` with "You don't have access to orders."; the two stock
+  detail, deliveries list and detail) and delivery zones under `orders.view` with "You don't have access to orders."; the two stock
   screens under `inventory.view` with "You don't have access to stock." It never signs the user out.
 - Finer permissions are checked inside screens with `useAuthedSession().hasPermission(…)`: `catalogue.manage` for
   edits, `pricing.manage` for any `price` field (without it the request never carries a `price` key), and
   `inventory.manage` for stock. `orders.manage` gates every order and delivery action (confirm, cancel, dispatch,
-  complete, delivery fee, delivery moves, notes, tracking edits); without it the sales screens are read-only. Which
-  action shows in which status comes from `getOrderActions` / `getDeliveryActions` (`/utils/salesRules.ts`).
+  complete, delivery fee, delivery moves, notes, tracking edits); without it the sales screens are read-only.
+  `fulfilment.manage` gates adding, editing, switching, reordering and deleting delivery zones. Which action shows
+  in which status comes from `getOrderActions` / `getDeliveryActions` (`/utils/salesRules.ts`).
 - `ProductDetailRoute` renders `NotFoundPage` for a non-numeric `:productId` and `ProductDetailPage` otherwise;
   `OrderDetailRoute`, `DeliveryDetailRoute` and `StockVariantRoute` do the same for `:orderId`, `:deliveryId` and
   `:variantId`.

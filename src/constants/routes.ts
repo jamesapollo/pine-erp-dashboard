@@ -14,6 +14,7 @@ export const ROUTES = {
   DELIVERY_DETAIL: '/deliveries/:deliveryId',
   STOCK: '/inventory',
   STOCK_VARIANT: '/inventory/:variantId',
+  DELIVERY_ZONES: '/delivery-zones',
   CATCH_ALL: '*',
 } as const;
 

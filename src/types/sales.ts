@@ -124,3 +124,13 @@ export type Courier = {
   created_at: string;
   updated_at: string;
 };
+export type DeliveryZone = {
+  id: number;
+  country: string;
+  name: string;
+  fee: Money;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};

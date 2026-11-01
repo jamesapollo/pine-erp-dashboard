@@ -3,6 +3,7 @@ import {
   type Delivery,
   type DeliveryListItem,
   type DeliveryTimelineEvent,
+  type DeliveryZone,
   type Order,
   type OrderDelivery,
   type OrderLine,
@@ -154,6 +155,20 @@ export function buildCourierFixture(overrides: Partial<Courier> = {}): Courier {
     is_active: true,
     created_at: '2026-10-01T08:00:00+00:00',
     updated_at: '2026-10-01T08:00:00+00:00',
+    ...overrides,
+  };
+}
+
+export function buildDeliveryZoneFixture(overrides: Partial<DeliveryZone> = {}): DeliveryZone {
+  return {
+    id: 1,
+    country: 'KE',
+    name: 'Nairobi CBD',
+    fee: buildMoney('200.00'),
+    is_active: true,
+    sort_order: 0,
+    created_at: '2026-10-01T09:00:00+00:00',
+    updated_at: '2026-10-01T09:00:00+00:00',
     ...overrides,
   };
 }

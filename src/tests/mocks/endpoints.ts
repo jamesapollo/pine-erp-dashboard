@@ -46,4 +46,6 @@ export const mockEndpoints = {
   deliveryNotes: `${store}/deliveries/:deliveryId/notes`,
   deliveryTracking: `${store}/deliveries/:deliveryId/tracking`,
   couriers: `${store}/couriers`,
+  deliveryZones: `${store}/delivery-zones`,
+  deliveryZone: `${store}/delivery-zones/:zoneId`,
 } as const;

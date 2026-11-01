@@ -4,6 +4,7 @@ import {
   Boxes,
   LayoutDashboard,
   LogOut,
+  MapPin,
   Package,
   ShoppingBag,
   Truck,
@@ -72,6 +73,11 @@ export function Sidebar({
         {permissions.includes('inventory.view') ? (
           <SidebarGroup label="Inventory">
             <SidebarLink to={ROUTES.STOCK} icon={Boxes} label="Stock" />
+          </SidebarGroup>
+        ) : null}
+        {canViewOrders ? (
+          <SidebarGroup label="Store">
+            <SidebarLink to={ROUTES.DELIVERY_ZONES} icon={MapPin} label="Delivery zones" />
           </SidebarGroup>
         ) : null}
       </nav>

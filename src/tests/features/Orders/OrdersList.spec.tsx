@@ -340,7 +340,14 @@ describe('Sales navigation', () => {
     const labels = within(navigation)
       .getAllByRole('link')
       .map((link) => link.textContent);
-    expect(labels).toEqual(['Overview', 'Orders', 'Deliveries', 'Products', 'Stock']);
+    expect(labels).toEqual([
+      'Overview',
+      'Orders',
+      'Deliveries',
+      'Products',
+      'Stock',
+      'Delivery zones',
+    ]);
   });
 
   it('hides Sales without orders.view and shows no access on the URL', async () => {

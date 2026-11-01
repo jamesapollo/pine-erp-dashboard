@@ -25,3 +25,6 @@ dist-ssr
 *.sw?
 
 .superpowers/
+
+# Playwright MCP screenshots and snapshots
+.playwright-mcp/
