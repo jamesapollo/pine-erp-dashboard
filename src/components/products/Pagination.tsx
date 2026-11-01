@@ -12,8 +12,8 @@ export function Pagination({
   onPageChange: (page: number) => void;
 }) {
   if (total <= perPage) return null;
-  const first = (page - 1) * perPage + 1;
   const last = Math.min(page * perPage, total);
+  const first = Math.min((page - 1) * perPage + 1, last);
 
   return (
     <div className="flex items-center justify-between gap-4 border-t border-border-subtle px-5 py-3">

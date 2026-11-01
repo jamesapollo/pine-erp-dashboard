@@ -55,7 +55,7 @@ export function useProductListFilters() {
 
   // Typing waits 300 ms of quiet before it reaches the URL (and so the request).
   useEffect(() => {
-    if (searchText === urlSearch) return undefined;
+    if (searchText.trim() === urlSearch) return undefined;
     const timer = setTimeout(
       () => updateParams({ search: searchText.trim() || undefined }, true),
       SEARCH_DEBOUNCE_MILLISECONDS,
@@ -70,13 +70,16 @@ export function useProductListFilters() {
     setSearch: setSearchText,
     setCategory: (nextCategory?: number) =>
       updateParams({ category: nextCategory ? String(nextCategory) : undefined }),
-    setPage: (nextPage: number) => {
-      setSearchParams((current) => {
-        const next = new URLSearchParams(current);
-        if (nextPage > 1) next.set('page', String(nextPage));
-        else next.delete('page');
-        return next;
-      });
+    setPage: (nextPage: number, shouldReplace = false) => {
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          if (nextPage > 1) next.set('page', String(nextPage));
+          else next.delete('page');
+          return next;
+        },
+        { replace: shouldReplace },
+      );
     },
   };
 }

@@ -193,4 +193,65 @@ describe('Products list', () => {
     expect(screen.getByRole('button', { name: 'Categories' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Option types' })).toBeVisible();
   });
+
+  it('moves to the last page when the page number is past the end', async () => {
+    const requests: URLSearchParams[] = [];
+    server.use(
+      http.get(mockEndpoints.me, () => HttpResponse.json({ data: buildUserFixture() })),
+      http.get(mockEndpoints.categories, () => HttpResponse.json({ data: categories })),
+      http.get(mockEndpoints.products, ({ request }) => {
+        const params = new URL(request.url).searchParams;
+        requests.push(params);
+        const isPastEnd = Number(params.get('page') ?? 1) > 3;
+        return HttpResponse.json(
+          buildPaginated(isPastEnd ? [] : [buildProductListItemFixture()], {
+            total: 61,
+            last_page: 3,
+            current_page: Number(params.get('page') ?? 1),
+          }),
+        );
+      }),
+    );
+    const { router } = customRenderAtRoute({ url: '/products?page=99' });
+
+    await waitFor(() => expect(router.state.location.search).toBe('?page=3'));
+    expect(await screen.findByText('Ankara wrap dress')).toBeVisible();
+    expect(screen.queryByText('No products yet')).not.toBeInTheDocument();
+    expect(screen.getByText('51–61 of 61')).toBeVisible();
+  });
+
+  it('keeps the filters and offers a retry when the list fails', async () => {
+    respondWithProducts([buildProductListItemFixture()]);
+    let shouldFail = true;
+    server.use(
+      http.get(mockEndpoints.products, ({ request }) => {
+        if (shouldFail && new URL(request.url).searchParams.get('per_page') !== '1') {
+          return HttpResponse.json({ message: 'Boom' }, { status: 500 });
+        }
+        return HttpResponse.json(buildPaginated([buildProductListItemFixture()]));
+      }),
+    );
+    customRenderAtRoute({ url: '/products' });
+
+    expect(await screen.findByText("Couldn't load products. Try again.")).toBeVisible();
+    expect(screen.getByRole('textbox', { name: 'Search products' })).toBeVisible();
+    expect(screen.getByRole('tab', { name: /All/ })).toBeVisible();
+
+    shouldFail = false;
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findByText('Ankara wrap dress')).toBeVisible();
+  });
+
+  it('does not change the URL when only a trailing space is typed', async () => {
+    const requests = respondWithProducts([buildProductListItemFixture()]);
+    const { router } = customRenderAtRoute({ url: '/products?search=ANK&page=2' });
+
+    await screen.findByText('Ankara wrap dress');
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search products' }), ' ');
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    expect(router.state.location.search).toBe('?search=ANK&page=2');
+    expect(listRequests(requests).every((params) => params.get('page') === '2')).toBe(true);
+  });
 });

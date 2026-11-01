@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layers, Plus, Search, Tags } from 'lucide-react';
 
@@ -43,17 +44,52 @@ export function ProductsPage() {
   const hasFilters = Boolean(filters.status || filters.search || filters.category);
   const page = filters.page ?? 1;
 
-  let content;
-  if (productsQuery.isPending) {
-    content = <Spinner label="Loading products" />;
+  const productsData = productsQuery.data;
+  // A stale or hand-edited page number past the end: move to the last page instead of
+  // claiming there are no products.
+  const isPastLastPage =
+    productsData !== undefined && productsData.data.length === 0 && productsData.meta.total > 0;
+  const lastPage = productsData?.meta.last_page ?? 1;
+
+  useEffect(() => {
+    if (isPastLastPage && page > lastPage) setPage(lastPage, true);
+  }, [isPastLastPage, page, lastPage, setPage]);
+
+  let table;
+  if (productsQuery.isPending || isPastLastPage) {
+    table = <Spinner label="Loading products" />;
   } else if (productsQuery.isError) {
-    content = isStatus(productsQuery.error, 403) ? (
-      <NoAccess message="You don't have access to products." />
-    ) : (
-      <Alert tone="danger">Couldn't load products. Try again.</Alert>
+    table = (
+      <div className="flex flex-col items-start gap-3 p-5">
+        <Alert tone="danger">Couldn't load products. Try again.</Alert>
+        <Button variant="secondary" onClick={() => productsQuery.refetch()}>
+          Try again
+        </Button>
+      </div>
     );
   } else {
-    content = (
+    table = (
+      <>
+        <ProductsTable
+          products={productsQuery.data.data}
+          categories={categories}
+          hasFilters={hasFilters}
+          canManage={canManage}
+        />
+        <Pagination
+          page={page}
+          perPage={PRODUCTS_PER_PAGE}
+          total={productsQuery.data.meta.total}
+          onPageChange={setPage}
+        />
+      </>
+    );
+  }
+
+  const content =
+    productsQuery.isError && isStatus(productsQuery.error, 403) ? (
+      <NoAccess message="You don't have access to products." />
+    ) : (
       <Card flush>
         <div className="px-5">
           <Tabs
@@ -95,21 +131,9 @@ export function ProductsPage() {
             }))}
           />
         </div>
-        <ProductsTable
-          products={productsQuery.data.data}
-          categories={categories}
-          hasFilters={hasFilters}
-          canManage={canManage}
-        />
-        <Pagination
-          page={page}
-          perPage={PRODUCTS_PER_PAGE}
-          total={productsQuery.data.meta.total}
-          onPageChange={setPage}
-        />
+        {table}
       </Card>
     );
-  }
 
   return (
     <div>
