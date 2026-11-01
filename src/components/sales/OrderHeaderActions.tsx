@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, CircleCheck } from 'lucide-react';
+import { Check, CircleCheck, Truck } from 'lucide-react';
 
 import { type Order } from '@/types/sales';
 import { useCompleteOrderMutation } from '@/hooks/api/mutations/sales/useCompleteOrderMutation';
@@ -7,11 +7,13 @@ import { useConfirmOrderMutation } from '@/hooks/api/mutations/sales/useConfirmO
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { CancelOrderDialog } from '@/components/sales/CancelOrderDialog';
+import { DispatchOrderDialog } from '@/components/sales/DispatchOrderDialog';
 import { type OrderActions } from '@/utils/salesRules';
 
 /** The order header's buttons, shown per status by `getOrderActions`. */
 export function OrderHeaderActions({ order, actions }: { order: Order; actions: OrderActions }) {
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [isDispatchDialogOpen, setIsDispatchDialogOpen] = useState(false);
   const confirmMutation = useConfirmOrderMutation(order.id);
   const completeMutation = useCompleteOrderMutation(order.id);
   const isBusy = confirmMutation.isPending || completeMutation.isPending;
@@ -27,7 +29,12 @@ export function OrderHeaderActions({ order, actions }: { order: Order; actions: 
           Cancel
         </Button>
       ) : null}
-      {/* The Dispatch button (actions.canDispatch) and its dialog go here. */}
+      {actions.canDispatch ? (
+        <Button disabled={isBusy} onClick={() => setIsDispatchDialogOpen(true)}>
+          <Icon icon={Truck} size={16} />
+          Dispatch
+        </Button>
+      ) : null}
       {actions.canConfirm ? (
         <Button
           disabled={isBusy}
@@ -50,6 +57,9 @@ export function OrderHeaderActions({ order, actions }: { order: Order; actions: 
       ) : null}
       {isCancelDialogOpen ? (
         <CancelOrderDialog order={order} onClose={() => setIsCancelDialogOpen(false)} />
+      ) : null}
+      {isDispatchDialogOpen ? (
+        <DispatchOrderDialog order={order} onClose={() => setIsDispatchDialogOpen(false)} />
       ) : null}
     </>
   );
