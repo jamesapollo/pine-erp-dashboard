@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useBlocker } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FormProvider, useForm } from 'react-hook-form';
 
-import { type Category, type Product } from '@/types/catalogue';
+import { type Category, type Product, type ProductVariant } from '@/types/catalogue';
 import { useArchiveProductMutation } from '@/hooks/api/mutations/catalogue/useArchiveProductMutation';
 import { usePublishProductMutation } from '@/hooks/api/mutations/catalogue/usePublishProductMutation';
 import { useUnpublishProductMutation } from '@/hooks/api/mutations/catalogue/useUnpublishProductMutation';
@@ -13,6 +13,7 @@ import {
   updateProduct,
 } from '@/hooks/api/mutations/catalogue/useUpdateProductMutation';
 import { updateVariant } from '@/hooks/api/mutations/catalogue/useUpdateVariantMutation';
+import { productQueryOptions } from '@/hooks/api/queries/catalogue/useProductQuery';
 import { useAuthedSession } from '@/hooks/useAuthedSession';
 import { Alert } from '@/components/ui/Alert';
 import { useToastContext } from '@/components/ui/ToastContext';
@@ -32,6 +33,7 @@ import {
 } from '@/components/products/productDetailSchema';
 import { PricingCard } from '@/components/products/PricingCard';
 import { ProductImagesCard } from '@/components/products/ProductImagesCard';
+import { ProductVariantsCard } from '@/components/products/ProductVariantsCard';
 import { UnsavedChangesDialog } from '@/components/products/UnsavedChangesDialog';
 import { VisibilityCard } from '@/components/products/VisibilityCard';
 import { getActionErrorMessage, getFieldError, isStatus } from '@/utils/apiErrors';
@@ -86,6 +88,8 @@ export function ProductDetailForm({
   const archiveMutation = useArchiveProductMutation();
 
   const [savedValues, setSavedValues] = useState(() => productDetailDefaultValues(product));
+  // The latest baseline for callbacks that finish after a render (a variant added in the dialog).
+  const savedValuesRef = useRef(savedValues);
   const [isSaving, setIsSaving] = useState(false);
   const [actionError, setActionError] = useState<string>();
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
@@ -99,8 +103,14 @@ export function ProductDetailForm({
     handleSubmit,
     reset,
     setError,
+    setValue,
     formState: { isDirty },
   } = form;
+
+  function updateSavedValues(values: ProductDetailInput) {
+    savedValuesRef.current = values;
+    setSavedValues(values);
+  }
 
   const isReadOnly = !canManage || product.status === 'archived';
   const summary = summarizeProduct(product);
@@ -188,7 +198,7 @@ export function ProductDetailForm({
 
     if (latest !== product) await storeProductResponse(queryClient, store.id, latest);
     const latestValues = productDetailDefaultValues(latest);
-    setSavedValues(latestValues);
+    updateSavedValues(latestValues);
     setIsSaving(false);
 
     if (failure === undefined) {
@@ -209,6 +219,32 @@ export function ProductDetailForm({
       const message = getFieldError(failure, 'price');
       if (message) setError(`variantPrices.${failedVariantId}`, { message });
     }
+  }
+
+  // A variant changed outside the form (Sellable switch, Add variant, opening stock): put it into
+  // the cached product. A new variant also joins the saved baseline with its saved price, so it
+  // isn't an unsaved edit; the user's other unsaved edits stay as they are.
+  async function storeVariant(variant: ProductVariant) {
+    const detailKey = productQueryOptions(store.id, product.id).queryKey;
+    const latest = queryClient.getQueryData(detailKey) ?? product;
+    const isNew = !latest.variants.some((existing) => existing.id === variant.id);
+    await storeProductResponse(queryClient, store.id, {
+      ...latest,
+      variants: isNew
+        ? [...latest.variants, variant]
+        : latest.variants.map((existing) => (existing.id === variant.id ? variant : existing)),
+    });
+    if (!isNew) return;
+
+    const savedPrice = variant.price?.amount ?? '';
+    const nextSaved = {
+      ...savedValuesRef.current,
+      variantPrices: { ...savedValuesRef.current.variantPrices, [variant.id]: savedPrice },
+    };
+    updateSavedValues(nextSaved);
+    // Give the new field its value first, so the reset compares like with like.
+    setValue(`variantPrices.${variant.id}`, savedPrice);
+    reset(nextSaved, { keepValues: true, keepErrors: true });
   }
 
   function submit() {
@@ -243,7 +279,11 @@ export function ProductDetailForm({
           <div className="flex min-w-0 flex-[1.7_1_560px] flex-col gap-4">
             <ProductDetailsCard categories={categories} isReadOnly={isReadOnly} />
             <ProductImagesCard product={product} />
-            {/* The tabbed Variants / Stock history card goes here. */}
+            <ProductVariantsCard
+              product={product}
+              isReadOnly={isReadOnly}
+              onVariantSaved={storeVariant}
+            />
           </div>
           <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-4">
             <VisibilityCard status={product.status} isReadOnly={isReadOnly} />
