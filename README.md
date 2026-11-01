@@ -21,6 +21,23 @@ The admin dashboard for Commerce ERP: a React single-page app that signs staff i
 
 The dev server serves the app at `/`. The proxy forwards `/api` and `/sanctum` for every method. It forwards `/login`, `/logout`, `/forgot-password` and `/reset-password` for POST only, because the same paths are also pages in the app.
 
+## Screens
+
+| Path                     | Screen                                                                                      | Needs            |
+| ------------------------ | ------------------------------------------------------------------------------------------- | ---------------- |
+| `/login`                 | Sign in                                                                                     | signed out       |
+| `/forgot-password`       | Request a password reset link                                                               | signed out       |
+| `/reset-password`        | Choose a new password from a reset link                                                     | anyone           |
+| `/`                      | Overview                                                                                    | signed in        |
+| `/products`              | Products list: status tabs, search, category filter, pages                                  | `catalogue.view` |
+| `/products/new`          | Add product: details, options and variants, prices, opening stock, images, save or publish  | `catalogue.view` |
+| `/products/:productId`   | Product detail: edit, publish, unpublish, archive, restore, images, variants, stock history | `catalogue.view` |
+| `/products/option-types` | Option types and their values (e.g. Size: S, M)                                             | `catalogue.view` |
+| `/products/categories`   | Category tree                                                                               | `catalogue.view` |
+
+Changing anything also needs `catalogue.manage`; prices need `pricing.manage` and stock needs `inventory.manage`.
+Without `catalogue.view` the products screens show "You don't have access to products."
+
 ## Testing a reset link locally
 
 In the API `.env`, set `APP_URL=http://localhost:5173` and `MAIL_MAILER=log`. Request a reset from the forgot password page, then open the link from the newest entry in the API's `storage/logs/laravel.log`. It will point at the dev server.

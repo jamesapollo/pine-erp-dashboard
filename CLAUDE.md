@@ -43,10 +43,10 @@ A reference guide for developers working on this codebase. Covers architecture, 
 
 ```
 src/
-├── components/     # UI components: ui/ (primitives), auth/, layout/
+├── components/     # UI components: ui/ (primitives), auth/, layout/, products/
 ├── constants/      # Global constants (UPPER_CASE exports), e.g. routes.ts
 ├── hooks/          # Custom hooks (generic + API-specific)
-├── pages/          # Page-level route components
+├── pages/          # Page-level route components (products/ holds the catalogue screens)
 ├── styles/tokens/  # Design-token CSS copied verbatim from the Commerce ERP design system
 ├── tests/          # Test infra, fixtures, MSW handlers
 ├── types/          # TypeScript type definitions
@@ -59,6 +59,8 @@ src/
 - **Domain-organised types**: `/types/` mirrors the API schema structure.
 - **Centralised query config**: A single `QueryClient` in `/utils/queryClient.ts`.
 - **Session from the server**: the signed-in user comes from `useSession()`, which reads `GET /api/v1/me`. Nothing about auth is kept in browser storage.
+- **Store-scoped data**: catalogue and inventory requests go to `/api/v1/stores/{storeId}/…`, built with
+  `storePath(storeId, path)` (`/utils/storePath.ts`). The store id always comes from `useAuthedSession().store.id`.
 
 ---
 
@@ -69,9 +71,30 @@ src/
 ```
 components/
 ├── ui/        # Design-system primitives (Button, Input, Card, Alert, Icon, …)
-├── auth/      # Sign-in, forgot/reset forms, ProtectedRoute, GuestRoute
-└── layout/    # AuthLayout and the signed-in AppShell (Sidebar, Topbar)
+├── auth/      # Sign-in, forgot/reset forms, ProtectedRoute, GuestRoute, RequirePermission
+├── layout/    # AuthLayout and the signed-in AppShell (Sidebar, Topbar)
+└── products/  # Catalogue screens' forms, cards, tables and dialogs (ProductNewForm, ProductDetailForm, …)
 ```
+
+### UI primitives
+
+Besides the originals (`Button`, `IconButton`, `Input`, `Card`, `Alert`, `Icon`, `Avatar`, `Spinner`, `EmptyState`,
+`TextLink`, `FormErrorMessage`), `components/ui/` holds:
+
+| Primitive                        | Use                                                                          |
+| -------------------------------- | ---------------------------------------------------------------------------- |
+| `Badge`, `StatusBadge`           | Tone pill; `StatusBadge kind="product"` maps a status to its tone and label  |
+| `Tabs`                           | Tab list (product list status filter, product detail Variants/Stock history) |
+| `Select`, `Textarea`, `Switch`   | `forwardRef` form controls; bind with `register` like `Input`                |
+| `Chip`                           | Toggle chip with `aria-pressed` (option value picker)                        |
+| `OrderRef`                       | Monospace reference text such as a SKU                                       |
+| `DataTable`                      | Generic `DataTable<Row>` with `columns`, `rows`, `getRowKey`, `caption`      |
+| `PageHeader`, `BackLink`         | Page title row with actions; back link above it                              |
+| `Dialog`                         | Modal dialog (confirmations, add category, add variant, …)                   |
+| `Toast` + `ToastContextProvider` | Notifications; call `useToastContext().showToast({ title, tone })`           |
+| `NoAccess`                       | The "no permission" screen rendered by `RequirePermission`                   |
+
+Products sub-components keep form schemas next to the form (`productNewSchema.ts`, `productDetailSchema.ts`).
 
 ### Co-location rules
 
@@ -201,7 +224,7 @@ Four layers, each with a defined scope:
 | Layer            | Library              | Scope                                         |
 | ---------------- | -------------------- | --------------------------------------------- |
 | Server state     | TanStack React Query | API responses, caching, background sync       |
-| App/UI state     | React Context API    | Cross-cutting UI state only (none yet)        |
+| App/UI state     | React Context API    | Cross-cutting UI state only (`ToastContext`)  |
 | Form state       | React Hook Form      | Per-form field values, validation, submission |
 | Persistent state | none                 | No auth data in browser storage               |
 
@@ -222,7 +245,8 @@ new QueryClient({
 
 ### Context pattern
 
-Every context module exports a provider and a consumer hook:
+Every context module exports a provider and a consumer hook. `components/ui/ToastContext.tsx` is the one in the app
+(`ToastContextProvider`, mounted in `App.tsx`, and `useToastContext`):
 
 ```typescript
 // 1. Provider component
@@ -258,11 +282,36 @@ into a shared file speculatively.
 src/hooks/
 ├── api/
 │   ├── queryKeys.ts                          # centralised key registry
-│   ├── queries/auth/useMeQuery.ts            # fetcher + hook, one file
-│   └── mutations/auth/                       # useSignInMutation, useSignOutMutation,
-│                                             # useForgotPasswordMutation, useResetPasswordMutation
+│   ├── queries/
+│   │   ├── auth/useMeQuery.ts                # fetcher + hook, one file
+│   │   ├── catalogue/                        # useProductsQuery, useProductQuery, useProductStatusCountsQuery,
+│   │   │                                     # useCategoriesQuery, useOptionTypesQuery
+│   │   └── inventory/useStockMovementsQuery.ts
+│   └── mutations/
+│       ├── auth/                             # useSignInMutation, useSignOutMutation,
+│       │                                     # useForgotPasswordMutation, useResetPasswordMutation
+│       ├── catalogue/                        # products (create, update, publish, unpublish, archive),
+│       │                                     # variants, images (upload, delete, set main, reorder),
+│       │                                     # categories, option types and option values
+│       └── inventory/useCreateStockAdjustmentMutation.ts
 ├── useSession.ts                             # the session union, derived from useMeQuery
-└── useSignOut.ts                             # sign-out action shared by the shell
+├── useAuthedSession.ts                       # the 'authed' session, for screens under ProtectedRoute
+├── useSignOut.ts                             # sign-out action shared by the shell
+├── useCreateProductFlow.ts                   # add product: product, variants, stock, images, publish
+└── useProductListFilters.ts                  # products list filters kept in the URL search params
+```
+
+`useAuthedSession()` returns the `authed` member of `Session` and throws if used anywhere else, so it is only for
+components rendered inside `ProtectedRoute`. Store-scoped hooks read `store.id` from it:
+
+```typescript
+export function useProductQuery(productId: number) {
+  const { store } = useAuthedSession();
+  return useQuery({
+    ...productQueryOptions(store.id, productId),
+    enabled: Number.isInteger(productId) && productId > 0,
+  });
+}
 ```
 
 There is no separate `<feature>Api.ts` file. Add a new fetcher next to the hook that uses it.
@@ -274,9 +323,24 @@ Naming: `use*Query` / `use*Mutation`. Fetcher functions go through the single co
 
 All keys live in `/hooks/api/queryKeys.ts` as a `const` object. Never inline a key string.
 
+Store-scoped keys are functions that start with `['stores', storeId, …]`, so a store's data never mixes with
+another's. `products(storeId)` is the prefix of both the list and detail keys, so invalidating it refreshes every
+product query for the store:
+
 ```typescript
+const products = (storeId: number) => ['stores', storeId, 'products'] as const;
+
 export const queryKeys = {
   me: ['me'],
+  products,
+  productList: (storeId: number, filters: ProductListFilters) =>
+    [...products(storeId), 'list', filters] as const,
+  product: (storeId: number, productId: number) =>
+    [...products(storeId), 'detail', productId] as const,
+  optionTypes: (storeId: number) => ['stores', storeId, 'option-types'] as const,
+  categories: (storeId: number) => ['stores', storeId, 'categories'] as const,
+  stockMovements: (storeId: number, productId: number) =>
+    ['stores', storeId, 'stock-movements', productId] as const,
 } as const;
 ```
 
@@ -312,6 +376,12 @@ export function useMeQuery() {
 
 Look at `useSignInMutation.ts` for the reference shape: `ensureCsrfCookie()`, then the POST, then on success
 `queryClient.setQueryData(queryKeys.me, …)` or `invalidateQueries({ queryKey: queryKeys.me })`.
+
+Store-scoped mutations (`useCreateCategoryMutation.ts` is a small example) take `store` from `useAuthedSession()`,
+POST to `storePath(store.id, …)`, invalidate the store's key on success and confirm with
+`useToastContext().showToast(…)`. CSRF is not re-fetched for these: the cookie already exists once signed in, and a
+419 is retried by the interceptor. Product mutations that get the updated product back write it into the detail
+cache with `storeProductResponse()` (`useUpdateProductMutation.ts`) instead of refetching.
 
 ---
 
@@ -378,8 +448,40 @@ export const routes: RouteObject[] = [
           {
             element: <AppShell />,
             children: [
-              { index: true, element: <OverviewPage /> },
-              { path: ROUTES.CATCH_ALL, element: <NotFoundPage /> },
+              {
+                index: true,
+                element: <OverviewPage />,
+                handle: { crumbs: ['Overview'] } satisfies RouteHandle,
+              },
+              {
+                element: (
+                  <RequirePermission
+                    slug="catalogue.view"
+                    message="You don't have access to products."
+                  />
+                ),
+                children: [
+                  {
+                    path: ROUTES.PRODUCTS,
+                    element: <ProductsPage />,
+                    handle: { crumbs: productsCrumbs } satisfies RouteHandle,
+                  },
+                  // ROUTES.PRODUCT_NEW, ROUTES.OPTION_TYPES and ROUTES.CATEGORIES follow the same shape
+                  {
+                    path: ROUTES.PRODUCT_DETAIL,
+                    element: <ProductDetailRoute />,
+                    handle: {
+                      crumbs: productsCrumbs,
+                      trailingCrumb: 'productName',
+                    } satisfies RouteHandle,
+                  },
+                ],
+              },
+              {
+                path: ROUTES.CATCH_ALL,
+                element: <NotFoundPage />,
+                handle: { crumbs: ['Page not found'] } satisfies RouteHandle,
+              },
             ],
           },
         ],
@@ -398,12 +500,34 @@ export const ROUTES = {
   LOGIN: '/login',
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password',
+  PRODUCTS: '/products',
+  PRODUCT_NEW: '/products/new',
+  OPTION_TYPES: '/products/option-types',
+  CATEGORIES: '/products/categories',
+  PRODUCT_DETAIL: '/products/:productId',
   CATCH_ALL: '*',
 } as const;
+
+export function buildProductPath(productId: number): string {
+  return `${ROUTES.PRODUCTS}/${productId}`;
+}
 ```
 
-Never write a path string inline; use `ROUTES`. There is no sign-up route: staff accounts are created by an
+Never write a path string inline; use `ROUTES`, and `buildProductPath(id)` for a product's detail link. There is no sign-up route: staff accounts are created by an
 administrator.
+
+### Breadcrumbs and permission gates
+
+- Every page route under `AppShell` carries a `handle` typed as `RouteHandle` (`/types/routeHandle.ts`): `crumbs`
+  for the `Topbar` breadcrumb, and `trailingCrumb: 'productName'` to append the loaded product's title.
+- `RequirePermission` (`components/auth/RequirePermission.tsx`) is a layout route: it renders `<Outlet />` when
+  `hasPermission(slug)` and otherwise `NoAccess` with the given message. The products screens sit under
+  `catalogue.view` with the fixed copy "You don't have access to products." It never signs the user out.
+- Finer permissions are checked inside screens with `useAuthedSession().hasPermission(…)`: `catalogue.manage` for
+  edits, `pricing.manage` for any `price` field (without it the request never carries a `price` key), and
+  `inventory.manage` for stock.
+- `ProductDetailRoute` renders `NotFoundPage` for a non-numeric `:productId` and `ProductDetailPage` otherwise.
+  `ProductDetailForm` uses `useBlocker` to ask "Discard changes?" before leaving with unsaved edits.
 
 ### Do not mock routing primitives
 
@@ -412,7 +536,8 @@ administrator.
 ### Session and protected routing (store identity from the session, not the URL)
 
 Routes carry no store or tenant identifier. The backend resolves the user from the session cookie, and the app reads
-the active store from the session. Never put a store id in a route or trust one from the URL.
+the active store from the session. Never put a store id in a route or trust one from the URL. Inside `ProtectedRoute`, read the session with
+`useAuthedSession()` (`/hooks/useAuthedSession.ts`) rather than narrowing `useSession()` again.
 
 `useSession()` (`/hooks/useSession.ts`) derives a discriminated union from `useMeQuery()`:
 
@@ -458,8 +583,16 @@ All styling is applied via Tailwind utility classes directly on JSX elements.
 Design tokens come from the Commerce ERP design system. `src/styles/tokens/*.css` are verbatim copies of the
 design-system token files (colour, spacing, typography, effects); do not hand-edit them, and they are excluded from
 Prettier in `.prettierignore`. `tailwind.config.ts` maps those tokens into the Tailwind theme, so components use
-semantic classes rather than raw values. Primitives live in `src/components/ui/`. Fonts come from the `@fontsource`
+semantic classes rather than raw values. Primitives live in `src/components/ui/` (see the table in §2). Icons are Lucide icons rendered through the `Icon`
+primitive. Fonts come from the `@fontsource`
 packages (`@fontsource-variable/plus-jakarta-sans`, `@fontsource/jetbrains-mono`), not a CDN.
+
+### Money
+
+Prices from the API are `Money` (`{ amount: "1500.00", currency: "KES" }`) or `null`. Display them with
+`formatMoney(money)` from `/utils/money.ts` (`KES 4,500.00`, or `—` for `null`); `formatAmount` gives the number
+alone, for columns whose header carries the unit ("Price (KES)"). Send prices as two-decimal strings: validate with
+`isValidPrice` and convert with `toMoneyInput` (`"4500"` → `"4500.00"`).
 
 ### Class name utilities
 
@@ -493,6 +626,9 @@ Key settings:
 ```
 src/types/
 ├── apiErrors.ts
+├── catalogue.ts     # Money, Product, ProductListItem, ProductVariant, ProductImage, OptionType, Category,
+│                    # StockMovement, Paginated<T>
+├── routeHandle.ts   # RouteHandle for route breadcrumbs
 └── session.ts
 ```
 
@@ -540,8 +676,11 @@ const {
 // Simple native input
 <Input label="Email" {...register('email')} />
 
-// A non-native input (custom picker, switch) would use <Controller name control render />
-// instead of register. No such input exists yet.
+// Switch, Select and Textarea forward their ref, so they bind with register too
+<Switch label="Featured on homepage" {...register('isFeatured')} />
+
+// A non-native input with no ref (a custom picker) would use <Controller name control render />.
+// None exists yet: the option picker in the add-product form uses useFormContext with useWatch/setValue.
 ```
 
 ### Error display
@@ -556,6 +695,8 @@ the Zod schema; server validation messages (the API's 422 body) are mapped with 
 ### Nested forms
 
 `FormProvider` wraps the form tree; all inputs access state via `useFormContext()` — no prop drilling of `register` / `control`.
+`ProductNewForm` and `ProductDetailForm` are the examples: their cards (`PricingCard`, `VisibilityCard`,
+`OptionPicker`, `PublishChecklist`, …) call `useFormContext<ProductNewInput>()` or `useFormContext<ProductDetailInput>()`.
 
 ---
 
@@ -568,7 +709,11 @@ Not used so far. Render failures surface through React's default behaviour; add 
 ### API error handling
 
 - Mutation callbacks and `onError` receive `AxiosError`; branch with the helpers in `/utils/apiErrors.ts`
-  (`isStatus`, `getFieldError`, `getRetryAfterSeconds`, `getTooManyRequestsMessage`).
+  (`isStatus`, `getFieldError`, `getRetryAfterSeconds`, `getTooManyRequestsMessage`, `getFirstValidationMessage`,
+  `getActionErrorMessage`).
+- `getActionErrorMessage(error)` is the message for a failed action: a 403 gives the fixed "You don't have permission
+  to do that.", a 422 gives the API's first validation message as-is, anything else "Something went wrong. Try
+  again." It is shown where the action happened (the dialog, the card or a toast).
 - Error shapes are defined in `/types/apiErrors.ts`.
 - `401` is handled once, centrally, by the Axios interceptor (see §7). `419` is retried once there.
 - Never reveal whether an email exists. Show the API's single login `422` message as-is, and show the same
@@ -606,8 +751,12 @@ None. No Datadog, LogRocket, Flagsmith or other third-party tracking is used.
 | `buildTestQueryClient()`       | A query client with the app's defaults, for tests that build their own |
 
 There is no router basename in tests (the app basename is `/`). Pass `url` as the app path: `'/'`, `'/login'`,
-`'/reset-password?token=…'`. Fixtures live in `src/tests/fixtures/` (`buildUserFixture` for a `User` with a
-membership), and the MSW endpoint paths in `src/tests/mocks/endpoints.ts` (`mockEndpoints`).
+`'/reset-password?token=…'`, `'/products/12'`. Fixtures live in `src/tests/fixtures/`: `buildUserFixture` (a `User`
+with a membership and the catalogue, pricing and inventory permissions) in `user.ts`, and in `catalogue.ts`
+`buildProductFixture`, `buildProductListItemFixture`, `buildVariantFixture`, `buildProductImageFixture`,
+`buildOptionTypeFixture`, `buildCategoryFixture`, `buildStockMovementFixture`, `buildMoney` and `buildPaginated`.
+The MSW endpoint paths are in `src/tests/mocks/endpoints.ts` (`mockEndpoints`); the store-scoped ones use a
+`:storeId` parameter, e.g. `mockEndpoints.product` is `/api/v1/stores/:storeId/products/:productId`.
 
 ### Waiting for hydration
 
@@ -682,8 +831,14 @@ hooks/api/
 utils/
 ├── axiosConfig.ts     # axiosInstance, ensureCsrfCookie, setUnauthenticatedHandler, interceptors
 ├── apiErrors.ts       # status and field-error helpers
+├── storePath.ts       # storePath(storeId, path) → /api/v1/stores/{storeId}{path}
+├── money.ts           # formatMoney, formatAmount, isValidPrice, toMoneyInput
 └── queryClient.ts     # the single QueryClient
 ```
+
+Catalogue endpoints are store-scoped (`storePath(store.id, '/products')`, `'/categories'`, `'/option-types'`);
+inventory ones too (`'/stock-movements'` filtered by `product_id`, `'/stock-adjustments'`). Lists come back as
+`Paginated<T>` (`/types/catalogue.ts`).
 
 ### Axios instance features
 
@@ -748,7 +903,7 @@ Type-only imports (`import { type Foo }`) are grouped with their corresponding r
 
 ### Context provider pattern
 
-If a context module is added, it follows this shape (none exist yet):
+Every context module follows this shape (`components/ui/ToastContext.tsx` is the example):
 
 ```typescript
 type FooContextState = { … };
@@ -763,7 +918,8 @@ export function FooContextProvider({ children }: { children: React.ReactNode }) 
 export const useFooContext = () => useContext(FooContext);
 ```
 
-The raw context object is never exported.
+The raw context object is never exported. Because the module exports a hook next to the component, the hook line
+carries `// eslint-disable-next-line react-refresh/only-export-components`.
 
 ### Page composition pattern
 
