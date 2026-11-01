@@ -228,12 +228,12 @@ Input.displayName = 'Input';
 
 Four layers, each with a defined scope:
 
-| Layer            | Library              | Scope                                         |
-| ---------------- | -------------------- | --------------------------------------------- |
-| Server state     | TanStack React Query | API responses, caching, background sync       |
-| App/UI state     | React Context API    | Cross-cutting UI state only (`ToastContext`)  |
-| Form state       | React Hook Form      | Per-form field values, validation, submission |
-| Persistent state | none                 | No auth data in browser storage               |
+| Layer            | Library              | Scope                                                             |
+| ---------------- | -------------------- | ----------------------------------------------------------------- |
+| Server state     | TanStack React Query | API responses, caching, background sync                           |
+| App/UI state     | React Context API    | Cross-cutting state only (`ToastContext`, `AuthedSessionContext`) |
+| Form state       | React Hook Form      | Per-form field values, validation, submission                     |
+| Persistent state | none                 | No auth data in browser storage                                   |
 
 ### React Query config (`/src/utils/queryClient.ts`)
 
@@ -252,8 +252,10 @@ new QueryClient({
 
 ### Context pattern
 
-Every context module exports a provider and a consumer hook. `components/ui/ToastContext.tsx` is the one in the app
-(`ToastContextProvider`, mounted in `App.tsx`, and `useToastContext`):
+Every context module exports a provider and a consumer hook. There are two in the app:
+`components/ui/ToastContext.tsx` (`ToastContextProvider`, mounted in `App.tsx`, and `useToastContext`) and
+`components/auth/AuthedSessionContext.tsx` (`AuthedSessionContextProvider`, mounted by `ProtectedRoute`, read through
+`useAuthedSession()`). The toast one is the shape to copy:
 
 ```typescript
 // 1. Provider component
@@ -480,17 +482,27 @@ export const routes: RouteObject[] = [
                   <RequirePermission slug="orders.view" message="You don't have access to orders." />
                 ),
                 children: [
-                  { path: ROUTES.ORDERS, element: <OrdersPage />, handle: { crumbs: ordersCrumbs } },
+                  {
+                    path: ROUTES.ORDERS,
+                    element: <OrdersPage />,
+                    handle: { crumbs: ordersCrumbs } satisfies RouteHandle,
+                  },
                   // ROUTES.DELIVERIES (DeliveriesPage) follows the same shape
                   {
                     path: ROUTES.ORDER_DETAIL,
                     element: <OrderDetailRoute />,
-                    handle: { crumbs: ordersCrumbs, trailingCrumb: 'orderReference' },
+                    handle: {
+                      crumbs: ordersCrumbs,
+                      trailingCrumb: 'orderReference',
+                    } satisfies RouteHandle,
                   },
                   {
                     path: ROUTES.DELIVERY_DETAIL,
                     element: <DeliveryDetailRoute />,
-                    handle: { crumbs: deliveriesCrumbs, trailingCrumb: 'deliveryReference' },
+                    handle: {
+                      crumbs: deliveriesCrumbs,
+                      trailingCrumb: 'deliveryReference',
+                    } satisfies RouteHandle,
                   },
                 ],
               },
@@ -872,6 +884,16 @@ Heavy leaf components get a `*Lazy.tsx` sibling using `React.lazy`. None exist y
 ### React Query cache defaults
 
 `staleTime: Infinity` means data never goes stale automatically. Freshness is managed by explicit `queryClient.invalidateQueries()` calls after mutations.
+
+Sales is the exception, because orders arrive from the storefront:
+
+- The orders list, its tab counts and the sidebar's pending count poll every 60 s
+  (`ORDERS_REFETCH_INTERVAL_MILLISECONDS`) and use `refetchOnWindowFocus: 'always'`.
+- The order and delivery details use `refetchOnWindowFocus: 'always'` and `refetchOnMount: 'always'`, so opening a
+  cached detail loads it again.
+- Use `'always'`, not `true`: with `staleTime: Infinity`, `true` never refetches because the data is never stale.
+- A mutation that stores its response (`storeOrderResponse`, `storeDeliveryResponse`) first cancels the detail's
+  in-flight reload so an older answer can't land on top of it.
 
 ---
 
