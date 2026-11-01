@@ -17,11 +17,13 @@ import { ProductDetailRoute } from '@/pages/products/ProductDetailRoute';
 import { ProductNewPage } from '@/pages/products/ProductNewPage';
 import { ProductsPage } from '@/pages/products/ProductsPage';
 import { OrderDetailRoute } from '@/pages/sales/OrderDetailRoute';
+import { DeliveriesPage } from '@/pages/sales/DeliveriesPage';
 import { OrdersPage } from '@/pages/sales/OrdersPage';
 import { type RouteHandle } from '@/types/routeHandle';
 
 const productsCrumbs = ['Catalogue', 'Products'];
 const ordersCrumbs = ['Sales', 'Orders'];
+const deliveriesCrumbs = ['Sales', 'Deliveries'];
 
 export const routes: RouteObject[] = [
   {
@@ -58,6 +60,11 @@ export const routes: RouteObject[] = [
                     path: ROUTES.ORDERS,
                     element: <OrdersPage />,
                     handle: { crumbs: ordersCrumbs } satisfies RouteHandle,
+                  },
+                  {
+                    path: ROUTES.DELIVERIES,
+                    element: <DeliveriesPage />,
+                    handle: { crumbs: deliveriesCrumbs } satisfies RouteHandle,
                   },
                   {
                     path: ROUTES.ORDER_DETAIL,
