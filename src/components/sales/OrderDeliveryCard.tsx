@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { OrderRef } from '@/components/ui/OrderRef';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { toSafeExternalUrl } from '@/utils/safeUrl';
 import { buildDeliveryPath } from '@/constants/routes';
 
 const METHOD_LABELS = { courier: 'Courier', pickup: 'Pickup' } as const;
@@ -17,6 +18,7 @@ function Dash() {
 export function OrderDeliveryCard({ order }: { order: Order }) {
   const navigate = useNavigate();
   const { delivery } = order;
+  const trackingUrl = toSafeExternalUrl(delivery?.tracking_url ?? null);
 
   if (!delivery) {
     return (
@@ -39,11 +41,11 @@ export function OrderDeliveryCard({ order }: { order: Order }) {
         <DetailRow label="Method">{METHOD_LABELS[delivery.method]}</DetailRow>
         <DetailRow label="Courier">{delivery.courier_name ?? <Dash />}</DetailRow>
         <DetailRow label="Tracking">
-          {delivery.tracking_number && delivery.tracking_url ? (
+          {delivery.tracking_number && trackingUrl ? (
             <a
-              href={delivery.tracking_url}
+              href={trackingUrl}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="text-text-link no-underline hover:underline"
             >
               <OrderRef value={delivery.tracking_number} plain />

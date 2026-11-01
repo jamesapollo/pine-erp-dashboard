@@ -211,6 +211,23 @@ describe('Order detail', () => {
     expect(router.state.location.pathname).toBe('/deliveries/5');
   });
 
+  it('shows the tracking number as text when its link is not a web address', async () => {
+    respondWithOrder(
+      buildConfirmedOrder({
+        delivery: buildOrderDeliveryFixture({
+          tracking_number: 'KE88213',
+          tracking_url: 'javascript:alert(1)',
+        }),
+      }),
+    );
+    customRenderAtRoute({ url: '/orders/12' });
+
+    await screen.findByRole('heading', { name: 'Delivery' });
+    const delivery = getCard('Delivery');
+    expect(delivery.getByText('KE88213')).toBeVisible();
+    expect(delivery.queryByRole('link', { name: 'KE88213' })).not.toBeInTheDocument();
+  });
+
   it('shows the activity newest first', async () => {
     respondWithOrder(buildConfirmedOrder({ delivery: buildOrderDeliveryFixture() }));
     customRenderAtRoute({ url: '/orders/12' });
