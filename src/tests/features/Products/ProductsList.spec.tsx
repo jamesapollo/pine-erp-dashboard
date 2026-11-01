@@ -119,6 +119,29 @@ describe('Products list', () => {
     expect(router.state.location.search).toBe('?category=2');
   });
 
+  it('drops a category filter whose category no longer exists', async () => {
+    const requests = respondWithProducts([buildProductListItemFixture()]);
+    server.use(
+      http.get(mockEndpoints.products, ({ request }) => {
+        const params = new URL(request.url).searchParams;
+        requests.push(params);
+        if (params.get('category') === '99') {
+          return HttpResponse.json(
+            { message: 'Invalid.', errors: { category: ['The selected category is invalid.'] } },
+            { status: 422 },
+          );
+        }
+        return HttpResponse.json(buildPaginated([buildProductListItemFixture()]));
+      }),
+    );
+    const { router } = customRenderAtRoute({ url: '/products?status=draft&category=99' });
+
+    await waitFor(() => expect(router.state.location.search).toBe('?status=draft'));
+    expect(await screen.findByText('Ankara wrap dress')).toBeVisible();
+    expect(screen.getByRole('combobox', { name: 'Category' })).toHaveValue('');
+    expect(router.state.historyAction).toBe('REPLACE');
+  });
+
   it('pages through results', async () => {
     const requests = respondWithProducts([buildProductListItemFixture()], { all: 61 });
     const { router } = customRenderAtRoute({ url: '/products' });

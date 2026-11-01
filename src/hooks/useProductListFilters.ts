@@ -68,8 +68,8 @@ export function useProductListFilters() {
     searchText,
     setStatus: (nextStatus?: ProductStatus) => updateParams({ status: nextStatus }),
     setSearch: setSearchText,
-    setCategory: (nextCategory?: number) =>
-      updateParams({ category: nextCategory ? String(nextCategory) : undefined }),
+    setCategory: (nextCategory?: number, shouldReplace = false) =>
+      updateParams({ category: nextCategory ? String(nextCategory) : undefined }, shouldReplace),
     setPage: (nextPage: number, shouldReplace = false) => {
       setSearchParams(
         (current) => {

@@ -82,10 +82,9 @@ describe('Categories', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
 
     expect(
-      await within(await screen.findByRole('dialog')).findByText(
-        "A category with subcategories can't be deleted.",
-      ),
+      await screen.findByText("A category with subcategories can't be deleted."),
     ).toBeVisible();
+    expect(screen.getByRole('dialog', { name: 'Delete Dresses?' })).toBeVisible();
   });
 
   it('saves a renamed category and toggles visibility', async () => {
@@ -108,6 +107,37 @@ describe('Categories', () => {
 
     await userEvent.click(screen.getByRole('switch', { name: 'Visible on storefront' }));
     await waitFor(() => expect(bodies[1]).toEqual({ is_visible: false }));
+  });
+
+  it('reports a rename that fails after moving to another category', async () => {
+    respondWithCategories();
+    let finishRename: () => void = () => {};
+    const renameAnswered = new Promise<void>((resolve) => {
+      finishRename = resolve;
+    });
+    server.use(
+      http.patch(mockEndpoints.category, async () => {
+        await renameAnswered;
+        return HttpResponse.json(
+          { message: 'Invalid.', errors: { name: ['That name is already taken.'] } },
+          { status: 422 },
+        );
+      }),
+    );
+    customRenderAtRoute({ url: '/products/categories' });
+
+    const nameInput = await screen.findByRole('textbox', { name: 'Name' });
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, 'Tops{Enter}');
+    await userEvent.click(
+      within(screen.getByRole('list', { name: 'Categories' })).getByRole('button', {
+        name: 'Tops',
+      }),
+    );
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Tops'));
+    finishRename();
+
+    expect(await screen.findByText('That name is already taken.')).toBeVisible();
   });
 
   it('is read-only without catalogue.manage', async () => {

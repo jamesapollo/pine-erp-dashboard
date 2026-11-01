@@ -24,12 +24,14 @@ type ToggleParams = { variantId: number; isActive: boolean };
 export function VariantsTab({
   product,
   isReadOnly,
+  isSaving,
   canSetPrices,
   onVariantSaved,
   onError,
 }: {
   product: Product;
   isReadOnly: boolean;
+  isSaving: boolean;
   canSetPrices: boolean;
   onVariantSaved: (variant: ProductVariant) => Promise<void>;
   onError: (message: string | undefined) => void;
@@ -118,7 +120,7 @@ export function VariantsTab({
           checked={
             pendingToggle?.variantId === variant.id ? pendingToggle.isActive : variant.is_active
           }
-          disabled={isReadOnly || toggleMutation.isPending}
+          disabled={isReadOnly || isSaving || toggleMutation.isPending}
           onChange={(event) => toggle(variant, event.target.checked)}
         />
       ),

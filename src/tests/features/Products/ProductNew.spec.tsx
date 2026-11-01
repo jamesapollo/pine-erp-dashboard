@@ -410,6 +410,11 @@ describe('Add product', () => {
     expect(variantPosts).toBe(2);
     expect(requests.map((request) => request.path)).toEqual([productPath]);
     expect(screen.queryByText('Draft saved')).not.toBeInTheDocument();
+
+    // The message is for this visit only: it isn't kept in history for a reload or Back.
+    await waitFor(() => expect(router.state.location.state).toBeNull());
+    expect(router.state.location.pathname).toBe('/products/7');
+    expect(screen.getByRole('alert')).toHaveTextContent('Saved as a draft, but 1 variant');
   });
 
   it('lands on the saved draft when publishing fails', async () => {
@@ -529,6 +534,104 @@ describe('Add product', () => {
       within(await screen.findByRole('dialog')).getByRole('button', { name: 'Discard' }),
     );
     await waitFor(() => expect(router.state.location.pathname).toBe('/products'));
+  });
+
+  it('refreshes option type usage after adding a product with options', async () => {
+    const { router } = setUp();
+    let isSizeUsed = false;
+    server.use(
+      http.get(mockEndpoints.optionTypes, () =>
+        HttpResponse.json({
+          data: [buildOptionTypeFixture({ products_count: isSizeUsed ? 1 : 0 })],
+        }),
+      ),
+      http.post(mockEndpoints.products, () => {
+        isSizeUsed = true;
+        return HttpResponse.json(
+          { data: buildProductFixture({ id: createdProductId, variants: [] }) },
+          { status: 201 },
+        );
+      }),
+    );
+    await waitForForm();
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Name' }), 'Ankara wrap dress');
+    await userEvent.click(await screen.findByRole('button', { name: 'Size' }));
+    await userEvent.click(screen.getByRole('button', { name: 'S' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save draft' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/products/7'));
+
+    await router.navigate('/products/option-types');
+
+    expect(await screen.findByText('Used by 1 product')).toBeVisible();
+    expect(screen.queryByText('Not used by any product yet')).not.toBeInTheDocument();
+  });
+
+  it('asks for a value for each chosen option before saving', async () => {
+    const { requests } = setUp();
+    await waitForForm();
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Name' }), 'Ankara wrap dress');
+    await userEvent.click(await screen.findByRole('button', { name: 'Size' }));
+
+    const saveDraft = screen.getByRole('button', { name: 'Save draft' });
+    expect(saveDraft).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Publish' })).toBeDisabled();
+    await userEvent.click(saveDraft);
+
+    expect(screen.getByText('Pick at least one value for each option.')).toBeVisible();
+    expect(requests).toEqual([]);
+  });
+
+  it('asks before leaving with unsaved work', async () => {
+    const { router } = setUp();
+    await waitForForm();
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Name' }), 'Ankara wrap dress');
+    await userEvent.click(within(screen.getByRole('main')).getByRole('link', { name: 'Products' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Discard changes?' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Keep editing' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/products/new');
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Ankara wrap dress');
+
+    await userEvent.click(
+      within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', {
+        name: 'Products',
+      }),
+    );
+    await userEvent.click(
+      within(await screen.findByRole('dialog', { name: 'Discard changes?' })).getByRole('button', {
+        name: 'Discard',
+      }),
+    );
+    await waitFor(() => expect(router.state.location.pathname).toBe('/products'));
+  });
+
+  it('confirms Discard only once', async () => {
+    const { router } = setUp();
+    await waitForForm();
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Name' }), 'Ankara wrap dress');
+    await userEvent.click(screen.getByRole('button', { name: 'Discard' }));
+    await userEvent.click(
+      within(await screen.findByRole('dialog', { name: 'Discard this product?' })).getByRole(
+        'button',
+        { name: 'Discard' },
+      ),
+    );
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/products'));
+    expect(screen.queryByRole('dialog', { name: 'Discard changes?' })).not.toBeInTheDocument();
+  });
+
+  it('shows no permission for Add product without catalogue.manage', async () => {
+    const { requests } = setUp({ user: buildUserWithout('catalogue.manage') });
+
+    expect(await screen.findByText("You don't have permission to do that.")).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Add product' })).not.toBeInTheDocument();
+    expect(requests).toEqual([]);
   });
 
   it('discards an untouched form without asking', async () => {

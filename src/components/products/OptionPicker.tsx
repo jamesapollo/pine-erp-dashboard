@@ -3,6 +3,7 @@ import { useFormContext, useWatch } from 'react-hook-form';
 
 import { type OptionType } from '@/types/catalogue';
 import { Chip } from '@/components/ui/Chip';
+import { FormErrorMessage } from '@/components/ui/FormErrorMessage';
 import { type ProductNewInput } from '@/components/products/productNewSchema';
 
 function OptionLabel({ hint, children }: { hint?: string; children: ReactNode }) {
@@ -16,7 +17,12 @@ function OptionLabel({ hint, children }: { hint?: string; children: ReactNode })
 
 // Option types are kept in the order they were picked; that order becomes the product's.
 export function OptionPicker({ optionTypes }: { optionTypes: OptionType[] }) {
-  const { control, getValues, setValue } = useFormContext<ProductNewInput>();
+  const {
+    control,
+    getValues,
+    setValue,
+    formState: { errors },
+  } = useFormContext<ProductNewInput>();
   const optionTypeIds = useWatch({ control, name: 'optionTypeIds' });
   const selectedValueIds = useWatch({ control, name: 'selectedValueIds' });
 
@@ -57,6 +63,10 @@ export function OptionPicker({ optionTypes }: { optionTypes: OptionType[] }) {
     return optionType ? [optionType] : [];
   });
 
+  const hasOptionWithoutValues = chosenTypes.some(
+    (optionType) => (selectedValueIds[optionType.id] ?? []).length === 0,
+  );
+
   return (
     <div className="grid gap-[18px]">
       <div>
@@ -94,6 +104,11 @@ export function OptionPicker({ optionTypes }: { optionTypes: OptionType[] }) {
           </div>
         );
       })}
+      {/* The submit-time error stays only while an option still has no values picked. */}
+      <FormErrorMessage
+        id="option-values-error"
+        message={hasOptionWithoutValues ? errors.optionTypeIds?.message : undefined}
+      />
       {chosenTypes.length === 0 ? (
         <div className="text-[13px] text-text-tertiary">
           No options — the product is sold as a single item.

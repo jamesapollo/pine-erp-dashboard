@@ -57,9 +57,19 @@ export const routes: RouteObject[] = [
                     handle: { crumbs: productsCrumbs } satisfies RouteHandle,
                   },
                   {
-                    path: ROUTES.PRODUCT_NEW,
-                    element: <ProductNewPage />,
-                    handle: { crumbs: [...productsCrumbs, 'New'] } satisfies RouteHandle,
+                    element: (
+                      <RequirePermission
+                        slug="catalogue.manage"
+                        message="You don't have permission to do that."
+                      />
+                    ),
+                    children: [
+                      {
+                        path: ROUTES.PRODUCT_NEW,
+                        element: <ProductNewPage />,
+                        handle: { crumbs: [...productsCrumbs, 'New'] } satisfies RouteHandle,
+                      },
+                    ],
                   },
                   {
                     path: ROUTES.OPTION_TYPES,

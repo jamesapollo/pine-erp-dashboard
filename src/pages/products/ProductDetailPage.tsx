@@ -1,4 +1,5 @@
-import { useLocation, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { useCategoriesQuery } from '@/hooks/api/queries/catalogue/useCategoriesQuery';
 import { useProductQuery } from '@/hooks/api/queries/catalogue/useProductQuery';
@@ -15,7 +16,18 @@ import { isStatus } from '@/utils/apiErrors';
 export function ProductDetailPage() {
   const { productId = '' } = useParams();
   const location = useLocation();
-  const saveIssues = (location.state as ProductDetailLocationState | null)?.saveIssues;
+  const navigate = useNavigate();
+  const stateSaveIssues = (location.state as ProductDetailLocationState | null)?.saveIssues;
+  // Add product's "didn't save" message is for this visit only: keep it here and clear it from
+  // history, so a reload or coming Back doesn't show it again.
+  const [saveIssues] = useState(stateSaveIssues);
+  useEffect(() => {
+    if (stateSaveIssues === undefined) return;
+    navigate(
+      { pathname: location.pathname, search: location.search, hash: location.hash },
+      { replace: true, state: null },
+    );
+  }, [stateSaveIssues, navigate, location.pathname, location.search, location.hash]);
   const productQuery = useProductQuery(Number(productId));
   // The category select needs its options before the form sets its value.
   const categoriesQuery = useCategoriesQuery();

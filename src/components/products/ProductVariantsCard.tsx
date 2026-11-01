@@ -22,10 +22,13 @@ type ProductTab = 'variants' | 'stock';
 export function ProductVariantsCard({
   product,
   isReadOnly,
+  isSaving,
   onVariantSaved,
 }: {
   product: Product;
   isReadOnly: boolean;
+  /** "Save changes" is in flight; changes that apply straight away wait for it. */
+  isSaving: boolean;
   onVariantSaved: (variant: ProductVariant) => Promise<void>;
 }) {
   const { hasPermission } = useAuthedSession();
@@ -69,6 +72,7 @@ export function ProductVariantsCard({
           <Button
             variant="secondary"
             size="sm"
+            disabled={isSaving}
             onClick={() => {
               setNotice(undefined);
               setIsAddOpen(true);
@@ -89,6 +93,7 @@ export function ProductVariantsCard({
           <VariantsTab
             product={product}
             isReadOnly={isReadOnly}
+            isSaving={isSaving}
             canSetPrices={canSetPrices}
             onVariantSaved={onVariantSaved}
             onError={setNotice}

@@ -4,7 +4,6 @@ import { Trash2 } from 'lucide-react';
 import { type Category } from '@/types/catalogue';
 import { useDeleteCategoryMutation } from '@/hooks/api/mutations/catalogue/useDeleteCategoryMutation';
 import { useUpdateCategoryMutation } from '@/hooks/api/mutations/catalogue/useUpdateCategoryMutation';
-import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Dialog } from '@/components/ui/Dialog';
@@ -12,7 +11,6 @@ import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Switch } from '@/components/ui/Switch';
-import { getActionErrorMessage } from '@/utils/apiErrors';
 import { flattenCategoryTree, getDescendantIds, indentCategoryLabel } from '@/utils/categoryTree';
 
 export function CategoryEditor({
@@ -105,9 +103,6 @@ export function CategoryEditor({
               updateMutation.mutate({ categoryId: category.id, is_visible: event.target.checked })
             }
           />
-          {updateMutation.isError ? (
-            <Alert tone="danger">{getActionErrorMessage(updateMutation.error)}</Alert>
-          ) : null}
         </div>
       </Card>
       <Dialog
@@ -134,11 +129,7 @@ export function CategoryEditor({
             </Button>
           </>
         }
-      >
-        {deleteMutation.isError ? (
-          <Alert tone="danger">{getActionErrorMessage(deleteMutation.error)}</Alert>
-        ) : null}
-      </Dialog>
+      />
     </>
   );
 }

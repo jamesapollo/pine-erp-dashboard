@@ -4,6 +4,7 @@ import { type Category } from '@/types/catalogue';
 import { queryKeys } from '@/hooks/api/queryKeys';
 import { useAuthedSession } from '@/hooks/useAuthedSession';
 import { useToastContext } from '@/components/ui/ToastContext';
+import { getActionErrorMessage } from '@/utils/apiErrors';
 import { axiosInstance } from '@/utils/axiosConfig';
 import { storePath } from '@/utils/storePath';
 
@@ -29,6 +30,11 @@ export function useUpdateCategoryMutation() {
     onSuccess: async (category) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.categories(store.id) });
       showToast({ title: 'Category saved', description: category.name });
+    },
+    // Shown here rather than in the screen, so a failure that lands after the editor or dialog
+    // has gone still reaches the user.
+    onError: (error) => {
+      showToast({ title: getActionErrorMessage(error), tone: 'danger' });
     },
   });
 }

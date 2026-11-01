@@ -138,7 +138,7 @@ export function ProductImagesCard({ product }: { product: Product }) {
     <>
       <Card
         title="Images"
-        subtitle="First image is the storefront thumbnail"
+        subtitle="The cover is the storefront thumbnail"
         actions={
           canChange ? (
             <Button

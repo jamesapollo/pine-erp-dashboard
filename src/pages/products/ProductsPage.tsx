@@ -55,6 +55,19 @@ export function ProductsPage() {
     if (isPastLastPage && page > lastPage) setPage(lastPage, true);
   }, [isPastLastPage, page, lastPage, setPage]);
 
+  // A link or bookmark to a category that has since been deleted: drop the filter rather than
+  // keep asking the API for it.
+  const isUnknownCategory =
+    filters.category !== undefined &&
+    categoriesQuery.isSuccess &&
+    !flattenCategoryTree(categoriesQuery.data).some(
+      ({ category }) => category.id === filters.category,
+    );
+
+  useEffect(() => {
+    if (isUnknownCategory) setCategory(undefined, true);
+  }, [isUnknownCategory, setCategory]);
+
   let table;
   if (productsQuery.isPending || isPastLastPage) {
     table = <Spinner label="Loading products" />;

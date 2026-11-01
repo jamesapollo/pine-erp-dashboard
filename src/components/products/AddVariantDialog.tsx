@@ -140,6 +140,8 @@ export function AddVariantDialog({
       return;
     }
     await onVariantSaved(variant);
+    // The option values it uses now count one more variant.
+    void queryClient.invalidateQueries({ queryKey: queryKeys.optionTypes(store.id) });
 
     const openingStock = canRecordStock && stock.trim() !== '' ? Number(stock.trim()) : 0;
     let stockError: unknown;

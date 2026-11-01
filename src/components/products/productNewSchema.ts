@@ -7,6 +7,7 @@ export const MAXIMUM_VARIANT_ROWS = 200;
 
 const MAXIMUM_OPENING_STOCK = 1_000_000;
 const PRICE_FORMAT_MESSAGE = 'Enter a price like 4500 or 4500.50';
+export const PICK_OPTION_VALUES_MESSAGE = 'Pick at least one value for each option.';
 
 export type SaveIntent = 'draft' | 'publish';
 
@@ -54,6 +55,14 @@ export function rowFieldKey(combinationKey: string): string {
 // Publish also needs a category and a base price above 0.
 export function productNewSchema(intent: SaveIntent) {
   return baseSchema.superRefine((input, context) => {
+    // A chosen option type with no values would leave the product with no variants.
+    if (input.optionTypeIds.some((optionTypeId) => !input.selectedValueIds[optionTypeId]?.length)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['optionTypeIds'],
+        message: PICK_OPTION_VALUES_MESSAGE,
+      });
+    }
     const hasBasePrice = input.basePrice.trim() !== '';
     if (intent === 'publish') {
       if (input.categoryId === undefined) {

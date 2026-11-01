@@ -282,6 +282,7 @@ export function ProductDetailForm({
             <ProductVariantsCard
               product={product}
               isReadOnly={isReadOnly}
+              isSaving={isSaving}
               onVariantSaved={storeVariant}
             />
           </div>

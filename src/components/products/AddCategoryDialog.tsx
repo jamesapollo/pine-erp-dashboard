@@ -2,12 +2,10 @@ import { useId, useState, type FormEvent } from 'react';
 
 import { type Category } from '@/types/catalogue';
 import { useCreateCategoryMutation } from '@/hooks/api/mutations/catalogue/useCreateCategoryMutation';
-import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { getActionErrorMessage } from '@/utils/apiErrors';
 import { flattenCategoryTree, indentCategoryLabel } from '@/utils/categoryTree';
 
 export function AddCategoryDialog({
@@ -83,9 +81,6 @@ export function AddCategoryDialog({
           value={parentId}
           onChange={(event) => setParentId(event.target.value)}
         />
-        {createMutation.isError ? (
-          <Alert tone="danger">{getActionErrorMessage(createMutation.error)}</Alert>
-        ) : null}
       </form>
     </Dialog>
   );

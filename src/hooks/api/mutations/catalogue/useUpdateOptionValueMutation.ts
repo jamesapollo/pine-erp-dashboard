@@ -37,7 +37,11 @@ export function useUpdateOptionValueMutation() {
       return data.data;
     },
     onSuccess: async (_optionValue, { successToast }) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.optionTypes(store.id) });
+      // Variant labels on products show the value's name, so a rename or retire refreshes them.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.optionTypes(store.id) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.products(store.id) }),
+      ]);
       if (successToast) showToast(successToast);
     },
     onError: (error) => {

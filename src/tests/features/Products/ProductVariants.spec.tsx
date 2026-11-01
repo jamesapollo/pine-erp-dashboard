@@ -270,6 +270,38 @@ describe('Product variants', () => {
     expect(screen.getByRole('textbox', { name: 'Price for M · Blue' })).toHaveValue('');
   });
 
+  it('locks the variant actions while the product saves', async () => {
+    setUp();
+    let finishSave: () => void = () => {};
+    const saveAnswered = new Promise<void>((resolve) => {
+      finishSave = resolve;
+    });
+    server.use(
+      http.patch(mockEndpoints.product, async () => {
+        await saveAnswered;
+        return HttpResponse.json({ data: buildVariantsProduct({ title: 'Ankara maxi dress' }) });
+      }),
+    );
+    await waitForProduct();
+
+    const name = screen.getByRole('textbox', { name: 'Name' });
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Ankara maxi dress');
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add variant' })).toBeDisabled());
+    for (const sellable of screen.getAllByRole('switch', { name: 'Sellable' })) {
+      expect(sellable).toBeDisabled();
+    }
+    finishSave();
+
+    expect(await screen.findByText('Product saved')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Add variant' })).toBeEnabled();
+    for (const sellable of screen.getAllByRole('switch', { name: 'Sellable' })) {
+      expect(sellable).toBeEnabled();
+    }
+  });
+
   it('keeps a variant price edit when its save fails', async () => {
     const { requests } = setUp();
     server.use(
@@ -402,6 +434,39 @@ describe('Product variants', () => {
     await waitFor(() => expect(added.getByText('4')).toBeVisible());
     expect(screen.getByRole('tab', { name: /^Variants/ })).toHaveTextContent('Variants3');
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+  });
+
+  it('refreshes option value usage after a variant is added', async () => {
+    const { router } = setUp();
+    let isMediumUsed = false;
+    server.use(
+      http.get(mockEndpoints.optionTypes, () =>
+        HttpResponse.json({
+          data: [
+            {
+              ...size,
+              values: size.values.map((value) =>
+                value.id === 2 ? { ...value, variants_count: isMediumUsed ? 1 : 0 } : value,
+              ),
+            },
+            colour,
+          ],
+        }),
+      ),
+    );
+    await waitForProduct();
+
+    const dialog = await openAddVariant();
+    await userEvent.selectOptions(dialog.getByRole('combobox', { name: 'Size' }), 'M');
+    await userEvent.selectOptions(dialog.getByRole('combobox', { name: 'Colour' }), 'Red');
+    isMediumUsed = true;
+    await userEvent.click(dialog.getByRole('button', { name: 'Add variant' }));
+    expect(await screen.findByText('Variant added')).toBeVisible();
+
+    await router.navigate('/products/option-types');
+
+    const mediumRow = (await screen.findByText('M')).closest('li') as HTMLElement;
+    await waitFor(() => expect(within(mediumRow).getByText('1 variant')).toBeVisible());
   });
 
   it('keeps unsaved edits when a variant is added', async () => {

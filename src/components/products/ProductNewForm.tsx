@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useBlocker, useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { isAxiosError } from 'axios';
-import { FormProvider, useForm, useWatch, type Resolver } from 'react-hook-form';
+import {
+  FormProvider,
+  useForm,
+  useWatch,
+  type DeepPartialSkipArrayKey,
+  type Resolver,
+} from 'react-hook-form';
 import { Send } from 'lucide-react';
 
 import { type ValidationErrorBody } from '@/types/apiErrors';
@@ -32,6 +38,7 @@ import {
   type SaveIntent,
 } from '@/components/products/productNewSchema';
 import { PublishChecklist } from '@/components/products/PublishChecklist';
+import { UnsavedChangesDialog } from '@/components/products/UnsavedChangesDialog';
 import { getActionErrorMessage, getFieldError, isStatus } from '@/utils/apiErrors';
 import { flattenCategoryTree, indentCategoryLabel } from '@/utils/categoryTree';
 import { buildVariantCombinations } from '@/utils/variantCombinations';
@@ -59,16 +66,17 @@ function getPageErrorMessage(error: unknown): string | undefined {
   return fieldErrors.length === 0 ? getActionErrorMessage(error) : undefined;
 }
 
-function hasEnteredAnything(input: ProductNewInput): boolean {
+// Takes watched values too, where any field may be missing.
+function hasEnteredAnything(input: DeepPartialSkipArrayKey<ProductNewInput>): boolean {
   return (
-    input.title.trim() !== '' ||
-    input.description.trim() !== '' ||
-    input.basePrice.trim() !== '' ||
+    (input.title ?? '').trim() !== '' ||
+    (input.description ?? '').trim() !== '' ||
+    (input.basePrice ?? '').trim() !== '' ||
     input.categoryId !== undefined ||
-    input.isFeatured ||
-    input.optionTypeIds.length > 0 ||
-    input.images.length > 0 ||
-    Object.values(input.rows).some(
+    Boolean(input.isFeatured) ||
+    (input.optionTypeIds ?? []).length > 0 ||
+    (input.images ?? []).length > 0 ||
+    Object.values(input.rows ?? {}).some(
       (row) => (row?.price ?? '').trim() !== '' || (row?.stock ?? '').trim() !== '',
     )
   );
@@ -130,6 +138,7 @@ export function ProductNewForm() {
     [optionTypeIds, selectedValueIds, optionTypes],
   );
   const hasTooManyVariants = combinations.length > MAXIMUM_VARIANT_ROWS;
+  const hasNoVariants = combinations.length === 0;
 
   const categoryOptions = flattenCategoryTree(categoriesQuery.data ?? []).map(
     ({ category, depth }) => ({
@@ -140,11 +149,44 @@ export function ProductNewForm() {
 
   const isBusy = isSubmitting || flow.isSaving;
 
+  // Leaving with anything entered asks first, except while saving (the save lands on the new
+  // product) and after Discard has already asked.
+  const isLeavingAllowedRef = useRef(false);
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      !isLeavingAllowedRef.current &&
+      currentLocation.pathname !== nextLocation.pathname &&
+      hasEnteredAnything(getValues()),
+  );
+
+  const hasEnteredValues = hasEnteredAnything(useWatch({ control }));
+
+  useEffect(() => {
+    if (!hasEnteredValues) return;
+    function warnBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+    }
+    window.addEventListener('beforeunload', warnBeforeUnload);
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload);
+  }, [hasEnteredValues]);
+
   function submit(intent: SaveIntent) {
     if (isBusy) return;
     intentRef.current = intent;
     setPendingIntent(intent);
-    void handleSubmit((input) => flow.save(input, intent))();
+    void handleSubmit(async (input) => {
+      isLeavingAllowedRef.current = true;
+      try {
+        await flow.save(input, intent);
+      } finally {
+        isLeavingAllowedRef.current = false;
+      }
+    })();
+  }
+
+  function leaveWithoutSaving() {
+    isLeavingAllowedRef.current = true;
+    navigate(ROUTES.PRODUCTS);
   }
 
   function discard() {
@@ -165,14 +207,14 @@ export function ProductNewForm() {
             </Button>
             <Button
               variant="secondary"
-              disabled={isBusy || hasTooManyVariants}
+              disabled={isBusy || hasTooManyVariants || hasNoVariants}
               isLoading={isBusy && pendingIntent === 'draft'}
               onClick={() => submit('draft')}
             >
               Save draft
             </Button>
             <Button
-              disabled={isBusy || hasTooManyVariants || !canSetPrices}
+              disabled={isBusy || hasTooManyVariants || hasNoVariants || !canSetPrices}
               isLoading={isBusy && pendingIntent === 'publish'}
               onClick={() => submit('publish')}
             >
@@ -283,11 +325,16 @@ export function ProductNewForm() {
             <Button variant="secondary" onClick={() => setIsDiscardOpen(false)}>
               Keep editing
             </Button>
-            <Button variant="danger" onClick={() => navigate(ROUTES.PRODUCTS)}>
+            <Button variant="danger" onClick={leaveWithoutSaving}>
               Discard
             </Button>
           </>
         }
+      />
+      <UnsavedChangesDialog
+        isOpen={blocker.state === 'blocked'}
+        onKeepEditing={() => blocker.reset?.()}
+        onDiscard={() => blocker.proceed?.()}
       />
     </FormProvider>
   );

@@ -69,6 +69,19 @@ export function useCreateProductFlow() {
   const canSetPrices = hasPermission('pricing.manage');
   const canRecordStock = hasPermission('inventory.manage');
 
+  // The new product shows in the list, and the option types it uses now count it.
+  const refreshCatalogue = useCallback(
+    async (hasOptions: boolean) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.products(store.id) }),
+        hasOptions
+          ? queryClient.invalidateQueries({ queryKey: queryKeys.optionTypes(store.id) })
+          : undefined,
+      ]);
+    },
+    [queryClient, store.id],
+  );
+
   const save = useCallback(
     async (input: ProductNewInput, intent: SaveIntent) => {
       if (isSavingRef.current) return;
@@ -163,7 +176,7 @@ export function useCreateProductFlow() {
           publish: isPublishPending,
           message: getActionErrorMessage(error),
         });
-        await queryClient.invalidateQueries({ queryKey: queryKeys.products(store.id) });
+        await refreshCatalogue(hasOptions);
         isSavingRef.current = false;
         setIsSaving(false);
         navigate(buildProductPath(product.id), {
@@ -172,7 +185,7 @@ export function useCreateProductFlow() {
         return;
       }
 
-      await queryClient.invalidateQueries({ queryKey: queryKeys.products(store.id) });
+      await refreshCatalogue(hasOptions);
       isSavingRef.current = false;
       setIsSaving(false);
       showToast({
@@ -181,7 +194,7 @@ export function useCreateProductFlow() {
       });
       navigate(buildProductPath(product.id));
     },
-    [canRecordStock, canSetPrices, navigate, optionTypes, queryClient, showToast, store.id],
+    [canRecordStock, canSetPrices, navigate, optionTypes, refreshCatalogue, showToast, store.id],
   );
 
   return { save, isSaving, fieldErrors };

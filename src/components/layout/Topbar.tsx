@@ -1,11 +1,10 @@
-import { ChevronRight } from 'lucide-react';
 import { Fragment } from 'react';
 import { useMatches } from 'react-router-dom';
-
-import { useProductQuery } from '@/hooks/api/queries/catalogue/useProductQuery';
-import { useAuthedSession } from '@/hooks/useAuthedSession';
+import { ChevronRight } from 'lucide-react';
 
 import { type RouteHandle } from '@/types/routeHandle';
+import { useProductQuery } from '@/hooks/api/queries/catalogue/useProductQuery';
+import { useAuthedSession } from '@/hooks/useAuthedSession';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/utils/cn';
 

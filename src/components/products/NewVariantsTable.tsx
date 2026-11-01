@@ -4,6 +4,7 @@ import { DataTable } from '@/components/ui/DataTable';
 import { Input } from '@/components/ui/Input';
 import {
   MAXIMUM_VARIANT_ROWS,
+  PICK_OPTION_VALUES_MESSAGE,
   rowFieldKey,
   type ProductNewInput,
 } from '@/components/products/productNewSchema';
@@ -95,7 +96,7 @@ export function NewVariantsTable({
       columns={columns}
       rows={combinations}
       getRowKey={(row) => row.key}
-      empty="Pick at least one value for each option."
+      empty={PICK_OPTION_VALUES_MESSAGE}
     />
   );
 }
