@@ -37,5 +37,9 @@ export function getActionErrorMessage(error: unknown): string {
     const message = getFirstValidationMessage(error) ?? error.response?.data?.message;
     if (message) return message;
   }
+  if (isStatus(error, 409) && isAxiosError<{ message?: string }>(error)) {
+    const message = error.response?.data?.message;
+    if (message) return message;
+  }
   return 'Something went wrong. Try again.';
 }

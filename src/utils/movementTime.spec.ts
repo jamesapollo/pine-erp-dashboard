@@ -1,4 +1,4 @@
-import { formatMovementTime } from '@/utils/movementTime';
+import { formatDateTime, formatMovementTime } from '@/utils/movementTime';
 
 const now = new Date('2026-10-18T12:00:00Z');
 
@@ -26,5 +26,20 @@ describe('formatMovementTime', () => {
 
   it('treats a time slightly in the future as Just now', () => {
     expect(formatMovementTime('2026-10-18T12:00:20Z', now)).toBe('Just now');
+  });
+});
+
+describe('formatDateTime', () => {
+  it('formats the local date and time in en-KE', () => {
+    const iso = '2026-10-18T11:30:00Z';
+    expect(formatDateTime(iso)).toBe(
+      new Intl.DateTimeFormat('en-KE', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(new Date(iso)),
+    );
+    expect(formatDateTime(iso)).toMatch(/18 Oct/);
   });
 });

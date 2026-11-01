@@ -92,6 +92,15 @@ describe('getActionErrorMessage', () => {
     expect(getActionErrorMessage(buildAxiosError(422, { message: 'Nope.' }))).toBe('Nope.');
   });
 
+  it('returns the API message on a 409 conflict', () => {
+    const error = buildAxiosError(409, {
+      message: "This order's stock hold has expired.",
+      code: 'hold_expired',
+    });
+
+    expect(getActionErrorMessage(error)).toBe("This order's stock hold has expired.");
+  });
+
   it('uses a generic message otherwise', () => {
     expect(getActionErrorMessage(buildAxiosError(500))).toBe('Something went wrong. Try again.');
     expect(getActionErrorMessage(new Error('boom'))).toBe('Something went wrong. Try again.');

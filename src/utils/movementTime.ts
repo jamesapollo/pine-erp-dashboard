@@ -16,3 +16,8 @@ export function formatMovementTime(createdAt: string, now: Date = new Date()): s
   const minutes = Math.floor(elapsed / MINUTE);
   return minutes < 1 ? 'Just now' : `${minutes} min ago`;
 }
+
+/** The local date and time, such as "18 Oct, 11:30". */
+export function formatDateTime(iso: string): string {
+  return dateTimeFormatter.format(new Date(iso));
+}
