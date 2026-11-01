@@ -1,16 +1,39 @@
 import { forwardRef, useId, type InputHTMLAttributes } from 'react';
+import { type LucideIcon } from 'lucide-react';
 
 import { FormErrorMessage } from '@/components/ui/FormErrorMessage';
+import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/utils/cn';
 
-type InputProps = InputHTMLAttributes<HTMLInputElement> & {
+type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size' | 'prefix'> & {
   label: string;
+  hideLabel?: boolean;
   hint?: string;
   error?: string;
+  prefix?: string;
+  suffix?: string;
+  size?: 'sm' | 'md';
+  icon?: LucideIcon;
 };
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, hint, error, id, disabled, className, ...props }, ref) => {
+  (
+    {
+      label,
+      hideLabel = false,
+      hint,
+      error,
+      prefix,
+      suffix,
+      size = 'md',
+      icon,
+      id,
+      disabled,
+      className,
+      ...props
+    },
+    ref,
+  ) => {
     const generatedId = useId();
     const inputId = id ?? generatedId;
     const hintId = `${inputId}-hint`;
@@ -21,19 +44,29 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       <div className={cn('flex min-w-0 flex-col gap-1.5', className)}>
         <label
           htmlFor={inputId}
-          className="text-[13px] font-medium leading-[1.3] text-text-primary"
+          className={cn(
+            'text-[13px] font-medium leading-[1.3] text-text-primary',
+            hideLabel && 'sr-only',
+          )}
         >
           {label}
         </label>
         <div
           className={cn(
-            'flex h-[34px] items-center rounded-control border bg-surface-card text-text-tertiary transition duration-[120ms] ease-out hover:border-border-strong focus-within:border-border-focus focus-within:shadow-focus',
+            'flex items-center rounded-control border bg-surface-card text-text-tertiary transition duration-[120ms] ease-out hover:border-border-strong focus-within:border-border-focus focus-within:shadow-focus',
+            size === 'sm' ? 'h-7' : 'h-[34px]',
             error
               ? 'border-danger-500 hover:border-danger-500 focus-within:border-danger-500 focus-within:shadow-focus-danger'
               : 'border-border-default',
             disabled && 'cursor-not-allowed bg-surface-sunken opacity-70',
           )}
         >
+          {icon ? <Icon icon={icon} className="ml-2.5 shrink-0" /> : null}
+          {prefix ? (
+            <span className="flex items-center pl-2.5 text-[length:var(--text-sm)] font-medium leading-none text-text-tertiary">
+              {prefix}
+            </span>
+          ) : null}
           <input
             ref={ref}
             id={inputId}
@@ -43,6 +76,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             className="h-full min-w-0 flex-1 appearance-none border-0 bg-transparent px-2.5 text-sm leading-none text-text-primary outline-none placeholder:text-text-disabled"
             {...props}
           />
+          {suffix ? (
+            <span className="flex items-center pr-2.5 text-[length:var(--text-sm)] font-medium leading-none text-text-tertiary">
+              {suffix}
+            </span>
+          ) : null}
         </div>
         {error ? (
           <FormErrorMessage id={errorId} message={error} />
