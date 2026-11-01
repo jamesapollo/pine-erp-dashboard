@@ -78,37 +78,45 @@ export function joinMeta(parts: (string | null | undefined)[]): string | undefin
   return present.length > 0 ? present.join(' · ') : undefined;
 }
 
-/** Newest first; events in the same moment keep the later one (higher id) on top. */
+/**
+ * Newest first; events in the same moment keep the later one (higher id) on top.
+ *
+ * The delivery only knows its current courier and tracking number, so they are credited to the
+ * latest dispatch (or retry) and the events after it. Older dispatched and in-transit events show
+ * only who did them, since a retry may have used another courier. With no dispatch in the history
+ * at all, nothing older exists to mislabel, so every event may carry them.
+ */
 export function toDeliveryTimelineEntries(
   events: DeliveryTimelineEvent[],
   method: DeliveryMethod,
   courierName: string | null,
   trackingNumber: string | null,
 ): TimelineEntry[] {
-  return [...events]
-    .sort(
-      (first, second) =>
-        new Date(second.created_at).getTime() - new Date(first.created_at).getTime() ||
-        second.id - first.id,
-    )
-    .map((event) => {
-      const { details = [], ...description } = describeEvent(
-        event,
-        method,
-        courierName,
-        trackingNumber,
-      );
-      const actorName = event.actor?.name;
-      return {
-        happenedAt: event.created_at,
-        item: {
-          id: `delivery-event-${event.id}`,
-          time: formatMovementTime(event.created_at),
-          meta: joinMeta([actorName ? `by ${actorName}` : null, ...details]),
-          ...description,
-        },
-      };
-    });
+  const newestFirst = [...events].sort(
+    (first, second) =>
+      new Date(second.created_at).getTime() - new Date(first.created_at).getTime() ||
+      second.id - first.id,
+  );
+  const latestDispatchIndex = newestFirst.findIndex((event) => event.to_status === 'dispatched');
+  return newestFirst.map((event, index) => {
+    const isCurrentDispatch = latestDispatchIndex === -1 || index <= latestDispatchIndex;
+    const { details = [], ...description } = describeEvent(
+      event,
+      method,
+      isCurrentDispatch ? courierName : null,
+      isCurrentDispatch ? trackingNumber : null,
+    );
+    const actorName = event.actor?.name;
+    return {
+      happenedAt: event.created_at,
+      item: {
+        id: `delivery-event-${event.id}`,
+        time: formatMovementTime(event.created_at),
+        meta: joinMeta([actorName ? `by ${actorName}` : null, ...details]),
+        ...description,
+      },
+    };
+  });
 }
 
 export function toDeliveryTimelineItems(

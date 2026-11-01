@@ -147,6 +147,58 @@ describe('toDeliveryTimelineItems', () => {
     );
   });
 
+  it('credits the current courier and tracking only from the latest dispatch on', () => {
+    const items = toDeliveryTimelineItems(
+      [
+        buildDeliveryEventFixture({
+          id: 1,
+          from_status: 'preparing',
+          to_status: 'dispatched',
+          actor,
+          created_at: '2026-10-18T09:00:00+00:00',
+        }),
+        buildDeliveryEventFixture({
+          id: 2,
+          from_status: 'dispatched',
+          to_status: 'in_transit',
+          actor: null,
+          created_at: '2026-10-18T10:00:00+00:00',
+        }),
+        buildDeliveryEventFixture({
+          id: 3,
+          from_status: 'in_transit',
+          to_status: 'failed',
+          actor,
+          created_at: '2026-10-18T11:00:00+00:00',
+        }),
+        buildDeliveryEventFixture({
+          id: 4,
+          from_status: 'failed',
+          to_status: 'dispatched',
+          actor,
+          created_at: '2026-10-19T09:00:00+00:00',
+        }),
+        buildDeliveryEventFixture({
+          id: 5,
+          from_status: 'dispatched',
+          to_status: 'in_transit',
+          actor: null,
+          created_at: '2026-10-19T10:00:00+00:00',
+        }),
+      ],
+      'courier',
+      'Rapid Couriers',
+      'RC-200',
+    );
+    expect(items.map((item) => [item.id, item.meta])).toEqual([
+      ['delivery-event-5', 'Rapid Couriers · RC-200'],
+      ['delivery-event-4', 'by Otieno O. · Rapid Couriers'],
+      ['delivery-event-3', 'by Otieno O.'],
+      ['delivery-event-2', undefined],
+      ['delivery-event-1', 'by Otieno O.'],
+    ]);
+  });
+
   it('lists events newest first', () => {
     const items = toDeliveryTimelineItems(
       [
