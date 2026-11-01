@@ -219,6 +219,11 @@ function DispatchOrderForm({
             <Select
               label="Courier"
               placeholder="Select a courier"
+              hint={
+                hasActiveCouriers
+                  ? undefined
+                  : 'No active couriers. Ask an owner to add or switch one on.'
+              }
               options={activeCouriers.map((courier) => ({
                 value: String(courier.id),
                 label: courier.name,

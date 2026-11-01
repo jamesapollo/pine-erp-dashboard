@@ -195,6 +195,31 @@ describe('Dispatch order', () => {
     ).toBeVisible();
   });
 
+  it('says how to get a courier when an existing courier delivery has none active', async () => {
+    respondWith(
+      buildConfirmedOrder({
+        delivery_status: 'preparing',
+        delivery: buildOrderDeliveryFixture({ id: 7, courier_name: 'Retired Riders' }),
+      }),
+      [buildCourierFixture({ id: 3, name: 'Retired Riders', is_active: false })],
+    );
+    server.use(
+      http.get(mockEndpoints.delivery, () =>
+        HttpResponse.json({ data: buildDeliveryFixture({ id: 7, order_id: 12, courier_id: 3 }) }),
+      ),
+    );
+    customRenderAtRoute({ url: '/orders/12' });
+
+    const { dialog } = await openDispatchDialog();
+
+    expect(await dialog.findByRole('combobox', { name: 'Courier' })).toHaveAccessibleDescription(
+      'No active couriers. Ask an owner to add or switch one on.',
+    );
+    expect(
+      dialog.queryByText('No active couriers. Choose pickup, or ask an owner to add a courier.'),
+    ).not.toBeInTheDocument();
+  });
+
   it('waits for the delivery fee', async () => {
     respondWith(
       buildConfirmedOrder({
