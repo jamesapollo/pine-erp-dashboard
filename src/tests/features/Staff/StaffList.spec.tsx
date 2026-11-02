@@ -105,7 +105,7 @@ describe('Staff list', () => {
     await userEvent.type(within(dialog).getByLabelText('Email'), 'ama@example.com');
     const picker = within(dialog).getByLabelText('Role');
     expect(within(picker).queryByRole('option', { name: 'Owner' })).not.toBeInTheDocument();
-    await userEvent.selectOptions(picker, 'Staff');
+    expect(picker).toHaveValue('3');
     expect(within(dialog).getByText('2 permissions')).toBeVisible();
     const requestsBefore = team.getListRequests();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Send invite' }));
@@ -133,11 +133,60 @@ describe('Staff list', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Invite staff' }));
     const dialog = await screen.findByRole('dialog', { name: 'Invite staff' });
     await userEvent.type(within(dialog).getByLabelText('Email'), 'kofi@zion.co.ke');
-    await userEvent.selectOptions(within(dialog).getByLabelText('Role'), 'Staff');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Send invite' }));
 
     expect(await within(dialog).findByText('This person is already on the team.')).toBeVisible();
     expect(screen.getByRole('dialog', { name: 'Invite staff' })).toBeVisible();
+  });
+
+  it('preselects the Staff role and falls back to the placeholder without one', async () => {
+    respondWithTeam();
+    server.use(
+      http.get(mockEndpoints.roles, () =>
+        HttpResponse.json({ data: [ownerRole, buildRoleFixture()] }),
+      ),
+    );
+    customRenderAtRoute({ url: '/staff' });
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Invite staff' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Invite staff' });
+    expect(within(dialog).getByLabelText('Role')).toHaveValue('');
+    expect(within(dialog).getByRole('option', { name: 'Choose a role' })).toBeVisible();
+  });
+
+  it('explains a failed roles load inside the invite dialog and retries', async () => {
+    respondWithTeam();
+    let shouldFail = true;
+    server.use(
+      http.get(mockEndpoints.roles, () =>
+        shouldFail
+          ? HttpResponse.json({ message: 'Server error.' }, { status: 500 })
+          : HttpResponse.json({ data: [ownerRole, staffRole] }),
+      ),
+    );
+    customRenderAtRoute({ url: '/staff' });
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Invite staff' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Invite staff' });
+    expect(await within(dialog).findByText('Something went wrong. Try again.')).toBeVisible();
+
+    shouldFail = false;
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Try again' }));
+    // The dialog is replaced by the form once the roles load.
+    expect(await screen.findByLabelText('Role')).toHaveValue('3');
+  });
+
+  it('shows the store name, member count and design copy', async () => {
+    respondWithTeam();
+    customRenderAtRoute({ url: '/staff' });
+
+    expect(
+      await screen.findByText('People who can sign in to Zion. Each person has one role.'),
+    ).toBeVisible();
+    expect(screen.getByText('Members')).toBeVisible();
+    expect(screen.getByText('3 people')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Invite staff' }));
+    expect(await screen.findByText("They'll get an email to set a password.")).toBeVisible();
   });
 
   it('hides invite and manage roles without staff.manage', async () => {

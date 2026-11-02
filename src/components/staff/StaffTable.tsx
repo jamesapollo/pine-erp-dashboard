@@ -1,17 +1,14 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 
-import { type StaffMember, type StaffStatus } from '@/types/staff';
+import { type StaffMember } from '@/types/staff';
 import { Avatar } from '@/components/ui/Avatar';
-import { Badge, type BadgeTone } from '@/components/ui/Badge';
+import { Badge } from '@/components/ui/Badge';
 import { DataTable } from '@/components/ui/DataTable';
+import { Icon } from '@/components/ui/Icon';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { formatMovementTime } from '@/utils/movementTime';
 import { buildStaffMemberPath } from '@/constants/routes';
-
-const STATUS_BADGES: Record<StaffStatus, { tone: BadgeTone; label: string }> = {
-  invited: { tone: 'warning', label: 'Invited' },
-  active: { tone: 'success', label: 'Active' },
-  suspended: { tone: 'neutral', label: 'Deactivated' },
-};
 
 const dateFormatter = new Intl.DateTimeFormat('en-KE', { month: 'short', day: 'numeric' });
 
@@ -69,9 +66,10 @@ export function StaffTable({ members }: { members: StaffMember[] }) {
           key: 'status',
           header: 'Status',
           render: (member) => (
-            <Badge dot tone={STATUS_BADGES[member.status].tone}>
-              {STATUS_BADGES[member.status].label}
-            </Badge>
+            <StatusBadge
+              kind="membership"
+              status={member.status === 'suspended' ? 'deactivated' : member.status}
+            />
           ),
         },
         {
@@ -82,6 +80,12 @@ export function StaffTable({ members }: { members: StaffMember[] }) {
               {formatLastActive(member)}
             </span>
           ),
+        },
+        {
+          key: 'open',
+          header: '',
+          width: 48,
+          render: () => <Icon icon={ChevronRight} className="text-text-tertiary" />,
         },
       ]}
     />

@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, ShieldCheck } from 'lucide-react';
+import { ShieldCheck, UserPlus } from 'lucide-react';
 
 import { type StaffMember } from '@/types/staff';
-import { useRolesQuery } from '@/hooks/api/queries/staff/useRolesQuery';
 import { useStaffQuery } from '@/hooks/api/queries/staff/useStaffQuery';
 import { useAuthedSession } from '@/hooks/useAuthedSession';
 import { InviteStaffDialog } from '@/components/staff/InviteStaffDialog';
@@ -16,19 +15,20 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Spinner } from '@/components/ui/Spinner';
 import { ROUTES } from '@/constants/routes';
 
-const PAGE_SUB = 'Everyone who can sign in to this store, and what they can do.';
+function getPageSub(storeName: string): string {
+  return `People who can sign in to ${storeName}. Each person has one role.`;
+}
 
 function StaffContent({ members }: { members: StaffMember[] }) {
-  const { hasPermission } = useAuthedSession();
+  const { hasPermission, store } = useAuthedSession();
   const canManage = hasPermission('staff.manage');
-  const rolesQuery = useRolesQuery();
   const [isInviting, setIsInviting] = useState(false);
 
   return (
     <div>
       <PageHeader
         title="Staff"
-        sub={PAGE_SUB}
+        sub={getPageSub(store.name)}
         actions={
           canManage ? (
             <>
@@ -39,31 +39,34 @@ function StaffContent({ members }: { members: StaffMember[] }) {
                 <Icon icon={ShieldCheck} />
                 Manage roles
               </Link>
-              <Button disabled={!rolesQuery.isSuccess} onClick={() => setIsInviting(true)}>
-                <Icon icon={Plus} />
+              <Button onClick={() => setIsInviting(true)}>
+                <Icon icon={UserPlus} />
                 Invite staff
               </Button>
             </>
           ) : null
         }
       />
-      <Card flush>
+      <Card
+        flush
+        title="Members"
+        subtitle={`${members.length} ${members.length === 1 ? 'person' : 'people'}`}
+      >
         <StaffTable members={members} />
       </Card>
-      {isInviting && rolesQuery.isSuccess ? (
-        <InviteStaffDialog roles={rolesQuery.data} onClose={() => setIsInviting(false)} />
-      ) : null}
+      {isInviting ? <InviteStaffDialog onClose={() => setIsInviting(false)} /> : null}
     </div>
   );
 }
 
 export function StaffPage() {
+  const { store } = useAuthedSession();
   const staffQuery = useStaffQuery();
 
   if (staffQuery.isError) {
     return (
       <>
-        <PageHeader title="Staff" sub={PAGE_SUB} />
+        <PageHeader title="Staff" sub={getPageSub(store.name)} />
         <div className="flex flex-col items-start gap-3">
           <Alert tone="danger">Couldn&apos;t load staff. Try again.</Alert>
           <Button variant="secondary" onClick={() => staffQuery.refetch()}>
