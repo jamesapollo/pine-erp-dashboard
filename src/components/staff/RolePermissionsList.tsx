@@ -1,12 +1,17 @@
 import { Check, Minus } from 'lucide-react';
 
 import { type Role } from '@/types/staff';
+import { usePermissionsQuery } from '@/hooks/api/queries/staff/usePermissionsQuery';
 import { Card } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/utils/cn';
 import { HIDDEN_PERMISSION_SLUGS, PERMISSION_GROUPS } from '@/constants/permissions';
 
 export function RolePermissionsList({ role, isPreview }: { role: Role; isPreview: boolean }) {
+  const permissionsQuery = usePermissionsQuery();
+  const descriptions = new Map(
+    (permissionsQuery.data ?? []).map((permission) => [permission.slug, permission.description]),
+  );
   return (
     <section>
       <h2 className="m-0 mb-1 text-[15px] font-semibold text-text-primary">
@@ -34,6 +39,7 @@ export function RolePermissionsList({ role, isPreview }: { role: Role; isPreview
               <ul className="m-0 list-none p-0">
                 {slugs.map((slug, index) => {
                   const isGranted = role.permissions.includes(slug);
+                  const description = descriptions.get(slug);
                   return (
                     <li
                       key={slug}
@@ -51,12 +57,16 @@ export function RolePermissionsList({ role, isPreview }: { role: Role; isPreview
                       />
                       <span
                         className={cn(
-                          'min-w-0 flex-1 font-mono text-sm',
+                          'min-w-0 flex-1 text-sm font-medium',
+                          !description && 'font-mono',
                           isGranted ? 'text-text-primary' : 'text-text-tertiary',
                         )}
                       >
-                        {slug}
+                        {description ?? slug}
                       </span>
+                      {description ? (
+                        <span className="font-mono text-xs text-text-tertiary">{slug}</span>
+                      ) : null}
                     </li>
                   );
                 })}

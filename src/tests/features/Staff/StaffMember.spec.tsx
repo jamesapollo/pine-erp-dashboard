@@ -4,7 +4,11 @@ import { http, HttpResponse } from 'msw';
 
 import { type StaffMember } from '@/types/staff';
 import { customRenderAtRoute } from '@/tests/customRender';
-import { buildRoleFixture, buildStaffMemberFixture } from '@/tests/fixtures/staff';
+import {
+  buildPermissionFixture,
+  buildRoleFixture,
+  buildStaffMemberFixture,
+} from '@/tests/fixtures/staff';
 import { buildUserFixture } from '@/tests/fixtures/user';
 import { mockEndpoints } from '@/tests/mocks/endpoints';
 import { server } from '@/tests/mocks/server';
@@ -43,14 +47,27 @@ function respondWithMember(member: StaffMember, { permissions }: { permissions?:
   const user = buildUserFixture();
   if (permissions) user.memberships[0].permissions = permissions;
   let current = member;
+  let rolesRequests = 0;
   server.use(
     http.get(mockEndpoints.me, () => HttpResponse.json({ data: user })),
     http.get(mockEndpoints.staffMember, () => HttpResponse.json({ data: current })),
-    http.get(mockEndpoints.roles, () =>
-      HttpResponse.json({ data: [ownerRole, managerRole, staffRole] }),
+    http.get(mockEndpoints.roles, () => {
+      rolesRequests += 1;
+      return HttpResponse.json({ data: [ownerRole, managerRole, staffRole] });
+    }),
+    http.get(mockEndpoints.permissions, () =>
+      HttpResponse.json({
+        data: [
+          buildPermissionFixture({
+            slug: 'catalogue.manage',
+            description: 'Create and edit products.',
+          }),
+        ],
+      }),
     ),
   );
   return {
+    getRolesRequests: () => rolesRequests,
     setCurrent: (next: StaffMember) => {
       current = next;
     },
@@ -100,7 +117,9 @@ describe('Staff member detail', () => {
   });
 
   it('changes the role and refreshes the list', async () => {
-    respondWithMember(buildStaffMemberFixture({ role: { ...staffRole, is_system: false } }));
+    const { getRolesRequests } = respondWithMember(
+      buildStaffMemberFixture({ role: { ...staffRole, is_system: false } }),
+    );
     let body: unknown;
     server.use(
       http.patch(mockEndpoints.staffMember, async ({ request }) => {
@@ -114,9 +133,11 @@ describe('Staff member detail', () => {
     expect(screen.getByRole('button', { name: 'Save role' })).toBeDisabled();
     await userEvent.selectOptions(select, 'Manager');
     expect(screen.getByText('Takes effect straight away')).toBeVisible();
+    const rolesRequestsBeforeSave = getRolesRequests();
     await userEvent.click(screen.getByRole('button', { name: 'Save role' }));
 
     expect(await screen.findByText('Role changed')).toBeVisible();
+    await waitFor(() => expect(getRolesRequests()).toBeGreaterThan(rolesRequestsBeforeSave));
     expect(body).toEqual({ role_id: 2 });
   });
 
@@ -145,7 +166,9 @@ describe('Staff member detail', () => {
     customRenderAtRoute({ url: '/staff/11' });
 
     expect(await screen.findByText('What Manager can do')).toBeVisible();
+    expect(await screen.findByText('Create and edit products.')).toBeVisible();
     expect(screen.getByText('catalogue.manage')).toBeVisible();
+    expect(screen.getByText('orders.view')).toBeVisible();
     expect(screen.queryByText('store.view')).not.toBeInTheDocument();
   });
 
@@ -213,6 +236,7 @@ describe('Staff member detail', () => {
     expect(await screen.findByText('The store owner’s role can’t be changed.')).toBeVisible();
     expect(screen.getByLabelText('Name')).toHaveValue('Wanjiru Kamau');
     expect(screen.queryByLabelText('Role')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save role' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Deactivate' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Send reset link' })).not.toBeInTheDocument();
     expect(screen.queryByText('Remove from store')).not.toBeInTheDocument();
@@ -244,7 +268,7 @@ describe('Staff member detail', () => {
     expect(screen.queryByText('Remove from store')).not.toBeInTheDocument();
   });
 
-  it('shows not found for a missing member and for a non-numeric id', async () => {
+  it('shows not found when the API has no such member', async () => {
     const user = buildUserFixture();
     server.use(
       http.get(mockEndpoints.me, () => HttpResponse.json({ data: user })),
@@ -254,5 +278,11 @@ describe('Staff member detail', () => {
     );
     customRenderAtRoute({ url: '/staff/99' });
     expect(await screen.findByText(/page not found/i)).toBeVisible();
+  });
+
+  it('shows not found for a non-numeric id', async () => {
+    server.use(http.get(mockEndpoints.me, () => HttpResponse.json({ data: buildUserFixture() })));
+    customRenderAtRoute({ url: '/staff/abc' });
+    expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeVisible();
   });
 });
