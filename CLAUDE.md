@@ -47,7 +47,8 @@ src/
 ├── constants/      # Global constants (UPPER_CASE exports), e.g. routes.ts
 ├── hooks/          # Custom hooks (generic + API-specific)
 ├── pages/          # Page-level route components (products/ the catalogue screens, sales/ orders and deliveries,
-│                   # inventory/ the stock list and one variant's stock, store/ delivery zones)
+│                   # inventory/ the stock list and one variant's stock, store/ delivery zones, staff/ the staff
+│                   # and roles screens, plus the public AcceptInvitePage)
 ├── styles/tokens/  # Design-token CSS copied verbatim from the Commerce ERP design system
 ├── tests/          # Test infra, fixtures, MSW handlers
 ├── types/          # TypeScript type definitions
@@ -72,7 +73,8 @@ src/
 ```
 components/
 ├── ui/        # Design-system primitives (Button, Input, Card, Alert, Icon, …)
-├── auth/      # Sign-in, forgot/reset forms, ProtectedRoute (+ AuthedSessionContext), GuestRoute, RequirePermission
+├── auth/      # Sign-in, forgot/reset and accept-invite forms (AcceptInviteForm, AcceptInviteFailure, +
+│              # acceptInviteSchema), ProtectedRoute (+ AuthedSessionContext), GuestRoute, RequirePermission
 ├── layout/    # AuthLayout and the signed-in AppShell (Sidebar, Topbar)
 ├── products/  # Catalogue screens' forms, cards, tables and dialogs (ProductNewForm, ProductDetailForm, …)
 ├── sales/     # Orders and deliveries: tables, detail cards, header actions and their dialogs (OrdersTable,
@@ -80,6 +82,9 @@ components/
 ├── inventory/ # Stock screens: StockLevelsTable, VariantTransactionsCard, StockAdjustDialog (+ stockAdjustSchema)
 └── store/     # Store settings: DeliveryZonesTable, CheckoutPreviewCard, DeliveryZoneDialog (+ deliveryZoneSchema),
                # DeleteDeliveryZoneDialog, AddCountryDialog
+└── staff/     # Staff and roles: StaffTable, InviteStaffDialog (+ inviteStaffSchema), StaffHeaderActions,
+               # StaffActionDialog, StaffProfileCard (+ staffNameSchema), StaffRoleCard, RemoveStaffCard,
+               # RolesTable, NewRoleDialog, DeleteRoleDialog, RoleEditorForm, RolePermissionsList (+ roleSchema)
 ```
 
 ### UI primitives
@@ -92,6 +97,7 @@ Besides the originals (`Button`, `IconButton`, `Input`, `Card`, `Alert`, `Icon`,
 | `Badge`, `StatusBadge`           | Tone pill; `StatusBadge kind` (product, order, delivery, payment) maps a status to tone and label |
 | `Tabs`                           | Tab list (product list status filter, product detail Variants/Stock history)                      |
 | `Select`, `Textarea`, `Switch`   | `forwardRef` form controls; bind with `register` like `Input`                                     |
+| `Checkbox`                       | `forwardRef` checkbox with a label; bind with `register` (role permission lists)                  |
 | `Radio`                          | `forwardRef` radio with `label` and `description`; bind with `register`                           |
 | `Timeline`                       | `<ol>` of `TimelineItem` (title, time, meta, note, tone, icon)                                    |
 | `LifecycleStepper`               | Step bars with `data-state` done/current/todo; `cancelled` greys the done                         |
@@ -303,6 +309,8 @@ src/hooks/
 │   │   ├── inventory/                        # useStockMovementsQuery (a product's), useVariantStockMovementsQuery,
 │   │   │                                     # useStockLevelsQuery, useStockSummaryQuery (tab counts, totals),
 │   │   │                                     # useStockLevelQuery (one variant)
+│   │   ├── staff/                            # useStaffQuery, useStaffMemberQuery, useRolesQuery, useRoleQuery,
+│   │   │                                     # usePermissionsQuery, useInvitationQuery (public, by token)
 │   │   └── sales/                            # useOrdersQuery, useOrderQuery, useOrderStatusCountsQuery,
 │   │                                         # usePendingOrderCountQuery, useDeliveriesQuery, useDeliveryQuery,
 │   │                                         # useCouriersQuery, useDeliveryZonesQuery
@@ -313,6 +321,9 @@ src/hooks/
 │       │                                     # variants, images (upload, delete, set main, reorder),
 │       │                                     # categories, option types and option values
 │       ├── inventory/useCreateStockAdjustmentMutation.ts
+│       ├── staff/                            # invite, resend and revoke an invitation, accept an invitation,
+│       │                                     # update, deactivate/reactivate and remove a member, send a
+│       │                                     # password reset, save and delete a role
 │       └── sales/                            # orders (confirm, cancel, complete, delivery fee, create delivery,
 │                                             # dispatch); deliveries (in transit, delivered, failed, retry,
 │                                             # returned, add note, update tracking); delivery zones (save,
@@ -574,38 +585,52 @@ export const ROUTES = {
   STOCK: '/inventory',
   STOCK_VARIANT: '/inventory/:variantId',
   DELIVERY_ZONES: '/delivery-zones',
+  STAFF: '/staff',
+  STAFF_MEMBER: '/staff/:memberId',
+  ROLES: '/roles',
+  ROLE_DETAIL: '/roles/:roleId',
+  ACCEPT_INVITE: '/accept-invite',
   CATCH_ALL: '*',
 } as const;
 
 export function buildProductPath(productId: number): string {
   return `${ROUTES.PRODUCTS}/${productId}`;
 }
-// buildOrderPath(orderId), buildDeliveryPath(deliveryId) and buildStockVariantPath(variantId) follow the same shape.
+// buildOrderPath(orderId), buildDeliveryPath(deliveryId), buildStockVariantPath(variantId),
+// buildStaffMemberPath(memberId) and buildRolePath(roleId) follow the same shape.
 ```
 
 Never write a path string inline; use `ROUTES`, and `buildProductPath(id)`, `buildOrderPath(id)` or
-`buildDeliveryPath(id)` for a detail link. There is no sign-up route: staff accounts are created by an
-administrator.
+`buildDeliveryPath(id)`, `buildStaffMemberPath(id)` or `buildRolePath(id)` for a detail link. There is no sign-up
+route. Staff join by invitation: someone with `staff.manage` invites an email address, the person opens the emailed
+link at `ROUTES.ACCEPT_INVITE` (`?token=…`), and `AcceptInvitePage` (public, in `AuthLayout`, outside `GuestRoute` and
+`ProtectedRoute`) previews the invitation with `useInvitationQuery` and sets their name and password through
+`useAcceptInvitationMutation`.
 
 ### Breadcrumbs and permission gates
 
 - Every page route under `AppShell` carries a `handle` typed as `RouteHandle` (`/types/routeHandle.ts`): `crumbs`
   for the `Topbar` breadcrumb, and `trailingCrumb` (`'productName'`, `'orderReference'`, `'deliveryReference'` or
-  `'stockVariantName'`) to append the loaded product's title, the order's reference or "Product · S · Red".
+  `'stockVariantName'`, `'staffMemberName'` or `'roleName'`) to append the loaded product's title, the order's
+  reference, "Product · S · Red", the staff member's name or the role's name.
 - `RequirePermission` (`components/auth/RequirePermission.tsx`) is a layout route: it renders `<Outlet />` when
   `hasPermission(slug)` and otherwise `NoAccess` with the given message. The products screens sit under
   `catalogue.view` with the fixed copy "You don't have access to products."; the four sales screens (orders list and
   detail, deliveries list and detail) and delivery zones under `orders.view` with "You don't have access to orders."; the two stock
-  screens under `inventory.view` with "You don't have access to stock." It never signs the user out.
+  screens under `inventory.view` with "You don't have access to stock."; the four staff screens (staff list and
+  member, roles list and role editor) under `staff.view` with "You don't have access to staff." It never signs the
+  user out.
 - Finer permissions are checked inside screens with `useAuthedSession().hasPermission(…)`: `catalogue.manage` for
   edits, `pricing.manage` for any `price` field (without it the request never carries a `price` key), and
   `inventory.manage` for stock. `orders.manage` gates every order and delivery action (confirm, cancel, dispatch,
   complete, delivery fee, delivery moves, notes, tracking edits); without it the sales screens are read-only.
-  `fulfilment.manage` gates adding, editing, switching, reordering and deleting delivery zones. Which action shows
+  `fulfilment.manage` gates adding, editing, switching, reordering and deleting delivery zones. `staff.manage` gates
+  every staff and role action (invite, resend or revoke an invitation, rename, change role, deactivate, reactivate,
+  password reset, remove, create, edit and delete roles); without it those screens are read-only. Which action shows
   in which status comes from `getOrderActions` / `getDeliveryActions` (`/utils/salesRules.ts`).
 - `ProductDetailRoute` renders `NotFoundPage` for a non-numeric `:productId` and `ProductDetailPage` otherwise;
-  `OrderDetailRoute`, `DeliveryDetailRoute` and `StockVariantRoute` do the same for `:orderId`, `:deliveryId` and
-  `:variantId`.
+  `OrderDetailRoute`, `DeliveryDetailRoute`, `StockVariantRoute`, `StaffMemberRoute` and `RoleDetailRoute` do the
+  same for `:orderId`, `:deliveryId`, `:variantId`, `:memberId` and `:roleId`.
   `ProductDetailForm` uses `useBlocker` to ask "Discard changes?" before leaving with unsaved edits.
 
 ### Do not mock routing primitives
@@ -710,6 +735,7 @@ src/types/
 │                    # StockMovement, Paginated<T>
 ├── routeHandle.ts   # RouteHandle for route breadcrumbs
 ├── sales.ts         # Order, OrderListItem, OrderLine, Delivery, DeliveryListItem, DeliveryTimelineEvent, Courier
+├── staff.ts         # StaffMember, StaffRole, Role, RoleDetail, Permission, InvitationPreview
 └── session.ts
 ```
 
@@ -837,7 +863,9 @@ with a membership and the catalogue, pricing, inventory and orders permissions) 
 `buildProductFixture`, `buildProductListItemFixture`, `buildVariantFixture`, `buildProductImageFixture`,
 `buildOptionTypeFixture`, `buildCategoryFixture`, `buildStockMovementFixture`, `buildVariantStockLevelFixture`, `buildMoney` and `buildPaginated`; in
 `sales.ts` `buildOrderFixture`, `buildOrderListItemFixture`, `buildOrderLineFixture`, `buildOrderDeliveryFixture`,
-`buildDeliveryFixture`, `buildDeliveryListItemFixture`, `buildDeliveryEventFixture` and `buildCourierFixture`.
+`buildDeliveryFixture`, `buildDeliveryListItemFixture`, `buildDeliveryEventFixture` and `buildCourierFixture`; in `staff.ts`
+`buildStaffMemberFixture`, `buildRoleFixture`, `buildRoleDetailFixture`, `buildPermissionFixture` and
+`buildInvitationPreviewFixture` (the default `buildUserFixture` also holds `staff.view` and `staff.manage`).
 The MSW endpoint paths are in `src/tests/mocks/endpoints.ts` (`mockEndpoints`); the store-scoped ones use a
 `:storeId` parameter, e.g. `mockEndpoints.product` is `/api/v1/stores/:storeId/products/:productId`.
 
@@ -938,6 +966,12 @@ inventory ones too (`'/stock-movements'` filtered by `product_id` or `variant_id
 (`getAvailableRange`, `/utils/stockStatus.ts`); "low" is 1 to `LOW_STOCK_THRESHOLD` (`/constants/stock.ts`, 3), the
 same rule `getStockStatus` and `StockCount` use. Lists come back as
 `Paginated<T>` (`/types/catalogue.ts`).
+
+Staff endpoints are store-scoped too: `'/staff'` (members, `/staff/invitations`, `/staff/{memberId}` with its
+`/deactivate`, `/reactivate`, `/password-reset` and `/invitation` actions), `'/roles'` and `'/permissions'`. The
+invitation endpoints are public and not store-scoped: `GET /api/v1/invitations/{token}` previews an invitation and
+`POST /api/v1/invitations/{token}/accept` accepts it, with the token in the path, no `storePath`, and no session
+needed.
 
 ### Axios instance features
 
