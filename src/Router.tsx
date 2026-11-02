@@ -26,7 +26,7 @@ import { DeliveryZonesPage } from '@/pages/store/DeliveryZonesPage';
 import { StockVariantRoute } from '@/pages/inventory/StockVariantRoute';
 import { RoleDetailPage } from '@/pages/staff/RoleDetailPage';
 import { RolesPage } from '@/pages/staff/RolesPage';
-import { StaffMemberPage } from '@/pages/staff/StaffMemberPage';
+import { StaffMemberRoute } from '@/pages/staff/StaffMemberRoute';
 import { StaffPage } from '@/pages/staff/StaffPage';
 import { type RouteHandle } from '@/types/routeHandle';
 
@@ -185,7 +185,7 @@ export const routes: RouteObject[] = [
                   },
                   {
                     path: ROUTES.STAFF_MEMBER,
-                    element: <StaffMemberPage />,
+                    element: <StaffMemberRoute />,
                     handle: {
                       crumbs: staffCrumbs,
                       trailingCrumb: 'staffMemberName',
