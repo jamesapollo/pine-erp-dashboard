@@ -224,7 +224,7 @@ src/tests/features/Staff/*.spec.tsx, Roles/*.spec.tsx, AcceptInvite/AcceptInvite
   - Header actions by status:
     - invited: Revoke invite, Resend invite.
     - active: Send reset link, Deactivate.
-    - suspended: Send reset link, Reactivate.
+    - suspended: Reactivate. (The API sends reset links to active members only.)
   - Deactivate, Revoke and Remove each confirm in a `Dialog` first.
   - The role card is a `Select` of the roles that aren't Owner. Save and Discard stay disabled until the role
     changes. The hint reads "Takes effect straight away".
