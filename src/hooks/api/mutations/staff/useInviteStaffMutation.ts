@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { type StaffMember } from '@/types/staff';
-import { queryKeys } from '@/hooks/api/queryKeys';
 import { useAuthedSession } from '@/hooks/useAuthedSession';
 import { useToastContext } from '@/components/ui/ToastContext';
 import { axiosInstance } from '@/utils/axiosConfig';
+import { invalidateTeamQueries } from '@/utils/staffCache';
 import { storePath } from '@/utils/storePath';
 
 export type InviteStaffMutationParams = { email: string; roleId: number };
@@ -23,10 +23,7 @@ export function useInviteStaffMutation() {
       return data.data;
     },
     onSuccess: async (_member, { email }) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.staff(store.id) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.roles(store.id) }),
-      ]);
+      await invalidateTeamQueries(queryClient, store.id);
       showToast({ title: `Invite sent to ${email}` });
     },
   });

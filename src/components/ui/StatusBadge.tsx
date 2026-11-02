@@ -31,6 +31,7 @@ const STATUS_MAP = {
   membership: {
     invited: ['info', 'Invited'],
     active: ['success', 'Active'],
+    suspended: ['neutral', 'Deactivated'],
     deactivated: ['neutral', 'Deactivated'],
     revoked: ['neutral', 'Revoked'],
   },

@@ -14,6 +14,7 @@ import { Select } from '@/components/ui/Select';
 import { Spinner } from '@/components/ui/Spinner';
 import { getActionErrorMessage, getFieldError } from '@/utils/apiErrors';
 import { countVisiblePermissions } from '@/utils/rolePermissions';
+import { OWNER_ROLE_SLUG } from '@/constants/permissions';
 
 const DIALOG_DESCRIPTION = "They'll get an email to set a password.";
 
@@ -56,7 +57,7 @@ function InviteStaffForm({ roles, onClose }: { roles: Role[]; onClose: () => voi
   const formId = useId();
   const inviteMutation = useInviteStaffMutation();
   // The Owner role is never handed out by invitation.
-  const assignableRoles = roles.filter((role) => role.slug !== 'owner');
+  const assignableRoles = roles.filter((role) => role.slug !== OWNER_ROLE_SLUG);
   const {
     register,
     handleSubmit,

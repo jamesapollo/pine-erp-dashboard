@@ -101,12 +101,7 @@ function StaffMemberContent({ member }: { member: StaffMember }) {
             {member.name}
           </span>
         }
-        titleAside={
-          <StatusBadge
-            kind="membership"
-            status={member.status === 'suspended' ? 'deactivated' : member.status}
-          />
-        }
+        titleAside={<StatusBadge kind="membership" status={member.status} />}
         sub={member.email}
         actions={canAct ? <StaffHeaderActions member={member} onAction={setAction} /> : null}
       />

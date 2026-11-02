@@ -1,3 +1,6 @@
+// The store owner's role: it always has every permission, and is never edited or handed out.
+export const OWNER_ROLE_SLUG = 'owner';
+
 export const PERMISSION_GROUPS: { label: string; slugs: string[] }[] = [
   { label: 'Catalogue', slugs: ['catalogue.view', 'catalogue.manage'] },
   { label: 'Pricing', slugs: ['pricing.view', 'pricing.manage'] },

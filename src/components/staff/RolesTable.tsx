@@ -8,7 +8,7 @@ import { DataTable } from '@/components/ui/DataTable';
 import { Icon } from '@/components/ui/Icon';
 import { countVisiblePermissions } from '@/utils/rolePermissions';
 import { cn } from '@/utils/cn';
-import { PERMISSION_GROUPS } from '@/constants/permissions';
+import { OWNER_ROLE_SLUG, PERMISSION_GROUPS } from '@/constants/permissions';
 import { buildRolePath } from '@/constants/routes';
 
 const MAX_AVATARS = 4;
@@ -78,7 +78,7 @@ export function RolesTable({ roles, members }: { roles: Role[]; members: StaffMe
           header: 'Permissions',
           render: (role) => (
             <span className="text-text-secondary">
-              {role.slug === 'owner'
+              {role.slug === OWNER_ROLE_SLUG
                 ? 'All'
                 : `${countVisiblePermissions(role.permissions)} of ${visiblePermissionTotal}`}
             </span>

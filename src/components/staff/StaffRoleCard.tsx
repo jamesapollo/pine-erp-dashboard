@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/Icon';
 import { Select } from '@/components/ui/Select';
 import { getActionErrorMessage, getFieldError } from '@/utils/apiErrors';
+import { OWNER_ROLE_SLUG } from '@/constants/permissions';
 import { buildRolePath } from '@/constants/routes';
 
 // The role is chosen here but held by the page, which previews what it allows.
@@ -94,7 +95,7 @@ export function StaffRoleCard({
           placeholder="Choose a role"
           value={selectedRoleId === null ? '' : String(selectedRoleId)}
           options={roles
-            .filter((role) => role.slug !== 'owner')
+            .filter((role) => role.slug !== OWNER_ROLE_SLUG)
             .map((role) => ({ value: String(role.id), label: role.name }))}
           hint="Takes effect straight away"
           error={serverRoleError}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useBlocker } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm, useWatch, type Control } from 'react-hook-form';
@@ -28,7 +28,11 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Textarea } from '@/components/ui/Textarea';
 import { getActionErrorMessage, getFieldError } from '@/utils/apiErrors';
 import { togglePermission } from '@/utils/rolePermissions';
-import { HIDDEN_PERMISSION_SLUGS, PERMISSION_GROUPS } from '@/constants/permissions';
+import {
+  HIDDEN_PERMISSION_SLUGS,
+  OWNER_ROLE_SLUG,
+  PERMISSION_GROUPS,
+} from '@/constants/permissions';
 import { buildStaffMemberPath, ROUTES } from '@/constants/routes';
 
 const roleEditorSchema = roleSchema.extend({ permissions: z.array(z.string()) });
@@ -91,7 +95,12 @@ function PermissionGroupCards({
                   {grantedCount} of {group.slugs.length}
                 </span>
                 {isReadOnly ? null : (
-                  <Button size="sm" variant="ghost" onClick={applyToGroup}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-label={`${isAllGranted ? 'Clear all' : 'Select all'} ${group.label} permissions`}
+                    onClick={applyToGroup}
+                  >
                     {isAllGranted ? 'Clear all' : 'Select all'}
                   </Button>
                 )}
@@ -173,12 +182,7 @@ function MembersCard({ role }: { role: RoleDetail }) {
             {
               key: 'status',
               header: 'Status',
-              render: (member) => (
-                <StatusBadge
-                  kind="membership"
-                  status={member.status === 'suspended' ? 'deactivated' : member.status}
-                />
-              ),
+              render: (member) => <StatusBadge kind="membership" status={member.status} />,
             },
           ]}
         />
@@ -195,6 +199,7 @@ function MembersCard({ role }: { role: RoleDetail }) {
 
 export function RoleEditorForm({ role }: { role: RoleDetail }) {
   const { hasPermission } = useAuthedSession();
+  const deleteHintId = useId();
   const saveMutation = useSaveRoleMutation();
   const [isDeleting, setIsDeleting] = useState(false);
   // Set once the role is deleted: its unsaved edits are gone with it, so leaving needs no prompt.
@@ -248,7 +253,7 @@ export function RoleEditorForm({ role }: { role: RoleDetail }) {
   });
 
   let sub: string;
-  if (role.slug === 'owner') sub = 'The Owner role always has every permission.';
+  if (role.slug === OWNER_ROLE_SLUG) sub = 'The Owner role always has every permission.';
   else sub = `${permissions.length} of ${visiblePermissionCount} permissions`;
 
   return (
@@ -318,13 +323,14 @@ export function RoleEditorForm({ role }: { role: RoleDetail }) {
               <Button
                 variant="danger"
                 disabled={memberCount > 0}
+                aria-describedby={memberCount > 0 ? deleteHintId : undefined}
                 onClick={() => setIsDeleting(true)}
               >
                 <Icon icon={Trash2} />
                 Delete role
               </Button>
               {memberCount > 0 ? (
-                <p className="m-0 mt-1.5 text-xs text-text-tertiary">
+                <p id={deleteHintId} className="m-0 mt-1.5 text-xs text-text-tertiary">
                   Move {memberCount === 1 ? 'its member' : `its ${memberCount} members`} to another
                   role before deleting.
                 </p>

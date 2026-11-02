@@ -222,8 +222,33 @@ describe('Staff member detail', () => {
     expect(await screen.findByText('What Manager can do')).toBeVisible();
     expect(await screen.findByText('Create and edit products.')).toBeVisible();
     expect(screen.getByText('catalogue.manage')).toBeVisible();
+    expect(
+      screen.getByText(
+        'Permissions come from the role. Edit the role to change them for everyone who has it.',
+      ),
+    ).toBeVisible();
     expect(screen.getByText('orders.view')).toBeVisible();
     expect(screen.queryByText('store.view')).not.toBeInTheDocument();
+  });
+
+  it('says which permissions the role allows in words, not only by icon', async () => {
+    respondWithMember(buildStaffMemberFixture());
+    customRenderAtRoute({ url: '/staff/11' });
+
+    const allowed = (await screen.findByText('Create and edit products.')).closest('li')!;
+    expect(allowed).toHaveTextContent(/^Allowed: Create and edit products\./);
+    const notAllowed = screen.getByText('pricing.manage').closest('li')!;
+    expect(notAllowed).toHaveTextContent(/^Not allowed: pricing\.manage$/);
+  });
+
+  it('asks for a name before saving', async () => {
+    respondWithMember(buildStaffMemberFixture());
+    customRenderAtRoute({ url: '/staff/11' });
+
+    await userEvent.clear(await screen.findByLabelText('Name'));
+    await userEvent.click(screen.getByRole('button', { name: 'Save name' }));
+
+    expect(await screen.findByText('Enter a name.')).toBeVisible();
   });
 
   it('deactivates after confirming, then offers reactivate', async () => {
@@ -245,6 +270,7 @@ describe('Staff member detail', () => {
     expect(await screen.findByText('Brian Mwangi deactivated')).toBeVisible();
     expect(await screen.findByRole('button', { name: 'Reactivate' })).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Send reset link' })).not.toBeInTheDocument();
+    expect(within(screen.getByRole('main')).getByText('Deactivated')).toBeVisible();
   });
 
   it('sends a reset link', async () => {
@@ -288,6 +314,8 @@ describe('Staff member detail', () => {
     customRenderAtRoute({ url: '/staff/10' });
 
     expect(await screen.findByText('The store owner’s role can’t be changed.')).toBeVisible();
+    expect(await screen.findByText('The Owner role always has every permission.')).toBeVisible();
+    expect(screen.queryByText(/Edit the role/)).not.toBeInTheDocument();
     expect(screen.getByLabelText('Name')).toHaveValue('Wanjiru Kamau');
     expect(screen.queryByLabelText('Role')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save role' })).not.toBeInTheDocument();

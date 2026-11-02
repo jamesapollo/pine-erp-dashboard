@@ -69,10 +69,25 @@ describe('Role editor', () => {
     await findPermissionCheckbox('View orders');
     const ordersCard = screen.getByRole('heading', { name: 'Orders' }).closest('section')!;
     expect(within(ordersCard).getByText('0 of 3')).toBeVisible();
-    await userEvent.click(within(ordersCard).getByRole('button', { name: 'Select all' }));
+    await userEvent.click(
+      within(ordersCard).getByRole('button', { name: 'Select all Orders permissions' }),
+    );
     expect(within(ordersCard).getByText('3 of 3')).toBeVisible();
-    await userEvent.click(within(ordersCard).getByRole('button', { name: 'Clear all' }));
+    await userEvent.click(
+      within(ordersCard).getByRole('button', { name: 'Clear all Orders permissions' }),
+    );
     expect(within(ordersCard).getByText('0 of 3')).toBeVisible();
+  });
+
+  it('names each group select-all button after its group', async () => {
+    respondWithRole(packerRole);
+    customRenderAtRoute({ url: '/roles/5' });
+
+    expect(
+      await screen.findByRole('button', { name: 'Select all Catalogue permissions' }),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Select all Pricing permissions' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Select all Inventory permissions' })).toBeVisible();
   });
 
   it('saves the chosen permissions', async () => {
@@ -134,7 +149,7 @@ describe('Role editor', () => {
     ).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Save role' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Delete role' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Select all' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Select all/ })).not.toBeInTheDocument();
   });
 
   it('lists the members and links to them', async () => {
@@ -150,8 +165,12 @@ describe('Role editor', () => {
     respondWithRole({ ...packerRole, member_count: 1, members: buildRoleDetailFixture().members });
     customRenderAtRoute({ url: '/roles/5' });
 
-    expect(await screen.findByRole('button', { name: 'Delete role' })).toBeDisabled();
+    const deleteButton = await screen.findByRole('button', { name: 'Delete role' });
+    expect(deleteButton).toBeDisabled();
     expect(screen.getByText('Move its member to another role before deleting.')).toBeVisible();
+    expect(deleteButton).toHaveAccessibleDescription(
+      'Move its member to another role before deleting.',
+    );
   });
 
   it('deletes an empty role and returns to the list', async () => {

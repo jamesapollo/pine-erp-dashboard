@@ -5,21 +5,30 @@ import { usePermissionsQuery } from '@/hooks/api/queries/staff/usePermissionsQue
 import { Card } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/utils/cn';
-import { HIDDEN_PERMISSION_SLUGS, PERMISSION_GROUPS } from '@/constants/permissions';
+import {
+  HIDDEN_PERMISSION_SLUGS,
+  OWNER_ROLE_SLUG,
+  PERMISSION_GROUPS,
+} from '@/constants/permissions';
 
 export function RolePermissionsList({ role, isPreview }: { role: Role; isPreview: boolean }) {
   const permissionsQuery = usePermissionsQuery();
   const descriptions = new Map(
     (permissionsQuery.data ?? []).map((permission) => [permission.slug, permission.description]),
   );
+  // The Owner role can't be edited, so it gets no instruction to edit it.
+  const source =
+    role.slug === OWNER_ROLE_SLUG
+      ? 'The Owner role always has every permission.'
+      : 'Permissions come from the role. Edit the role to change them for everyone who has it.';
   return (
     <section>
       <h2 className="m-0 mb-1 text-[15px] font-semibold text-text-primary">
         What {role.name} can do
       </h2>
       <p className="m-0 mb-3 text-[13px] text-text-secondary">
-        {isPreview ? 'Preview of the role you’ve selected. ' : ''}Permissions come from the role.
-        Edit the role to change them for everyone who has it.
+        {isPreview ? 'Preview of the role you’ve selected. ' : ''}
+        {source}
       </p>
       <div className="grid gap-4">
         {PERMISSION_GROUPS.map((group) => {
@@ -62,6 +71,7 @@ export function RolePermissionsList({ role, isPreview }: { role: Role; isPreview
                           isGranted ? 'text-text-primary' : 'text-text-tertiary',
                         )}
                       >
+                        <span className="sr-only">{isGranted ? 'Allowed: ' : 'Not allowed: '}</span>
                         {description ?? slug}
                       </span>
                       {description ? (

@@ -65,12 +65,7 @@ export function StaffTable({ members }: { members: StaffMember[] }) {
         {
           key: 'status',
           header: 'Status',
-          render: (member) => (
-            <StatusBadge
-              kind="membership"
-              status={member.status === 'suspended' ? 'deactivated' : member.status}
-            />
-          ),
+          render: (member) => <StatusBadge kind="membership" status={member.status} />,
         },
         {
           key: 'last_active_at',
