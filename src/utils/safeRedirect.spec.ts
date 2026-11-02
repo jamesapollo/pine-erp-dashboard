@@ -5,6 +5,10 @@ describe('getSafeRedirectPath', () => {
     expect(getSafeRedirectPath('/orders/42?tab=items')).toBe('/orders/42?tab=items');
   });
 
+  it('keeps the accept-invite path with its token', () => {
+    expect(getSafeRedirectPath('/accept-invite?token=abc123')).toBe('/accept-invite?token=abc123');
+  });
+
   it.each([
     ['nothing', null],
     ['a protocol-relative url', '//evil.com'],

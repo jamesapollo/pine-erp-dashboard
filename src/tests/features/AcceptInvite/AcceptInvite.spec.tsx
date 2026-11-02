@@ -1,0 +1,208 @@
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
+
+import { type InvitationPreview } from '@/types/staff';
+import { customRenderAtRoute } from '@/tests/customRender';
+import { buildInvitationPreviewFixture } from '@/tests/fixtures/staff';
+import { buildUserFixture } from '@/tests/fixtures/user';
+import { mockEndpoints } from '@/tests/mocks/endpoints';
+import { server } from '@/tests/mocks/server';
+
+const URL = '/accept-invite?token=abc123';
+
+function mockInvitation(preview: InvitationPreview | null) {
+  server.use(
+    http.get(mockEndpoints.invitation, () =>
+      preview === null
+        ? HttpResponse.json({ message: 'Not found.' }, { status: 404 })
+        : HttpResponse.json({ data: preview }),
+    ),
+  );
+}
+
+function recordAccepts(respond?: () => Response) {
+  const calls: { token: string | readonly string[]; body: unknown }[] = [];
+  let hasAccepted = false;
+  server.use(
+    http.post(mockEndpoints.invitationAccept, async ({ request, params }) => {
+      const text = await request.text();
+      calls.push({ token: params.token ?? '', body: text === '' ? null : JSON.parse(text) });
+      const response = respond?.() ?? new HttpResponse(null, { status: 204 });
+      if (response.ok) hasAccepted = true;
+      return response;
+    }),
+  );
+  return { calls, hasAccepted: () => hasAccepted };
+}
+
+describe('Accept invite', () => {
+  it('lets a new person join', async () => {
+    mockInvitation(buildInvitationPreviewFixture({ has_password: false }));
+    const { calls, hasAccepted } = recordAccepts();
+    let isSignedIn = false;
+    server.use(
+      http.get(mockEndpoints.me, () => {
+        isSignedIn = hasAccepted();
+        return isSignedIn
+          ? HttpResponse.json({ data: buildUserFixture() })
+          : HttpResponse.json({ message: 'Unauthenticated.' }, { status: 401 });
+      }),
+    );
+    const { router } = customRenderAtRoute({ url: URL });
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByLabelText('Your name'), 'Njeri Kamau');
+    await user.type(screen.getByLabelText('Password'), 'correct-horse-battery');
+    await user.type(screen.getByLabelText('Confirm password'), 'correct-horse-battery');
+    await user.click(screen.getByRole('button', { name: 'Join Zion' }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/');
+    });
+    expect(calls).toEqual([
+      {
+        token: 'abc123',
+        body: {
+          name: 'Njeri Kamau',
+          password: 'correct-horse-battery',
+          password_confirmation: 'correct-horse-battery',
+        },
+      },
+    ]);
+    expect(isSignedIn).toBe(true);
+  });
+
+  it('checks the password rules before sending', async () => {
+    mockInvitation(buildInvitationPreviewFixture({ has_password: false }));
+    const { calls } = recordAccepts();
+    customRenderAtRoute({ url: URL });
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByLabelText('Your name'), 'Njeri Kamau');
+    await user.type(screen.getByLabelText('Password'), 'short');
+    await user.type(screen.getByLabelText('Confirm password'), 'different');
+    await user.click(screen.getByRole('button', { name: 'Join Zion' }));
+
+    expect(await screen.findByText('Use at least 12 characters.')).toBeVisible();
+    expect(screen.getByText("Passwords don't match.")).toBeVisible();
+    expect(calls).toEqual([]);
+  });
+
+  it("shows the API's password rule error", async () => {
+    mockInvitation(buildInvitationPreviewFixture({ has_password: false }));
+    recordAccepts(() =>
+      HttpResponse.json(
+        { message: 'Invalid.', errors: { password: ['That password has leaked before.'] } },
+        { status: 422 },
+      ),
+    );
+    customRenderAtRoute({ url: URL });
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByLabelText('Your name'), 'Njeri Kamau');
+    await user.type(screen.getByLabelText('Password'), 'correct-horse-battery');
+    await user.type(screen.getByLabelText('Confirm password'), 'correct-horse-battery');
+    await user.click(screen.getByRole('button', { name: 'Join Zion' }));
+
+    expect(await screen.findByText('That password has leaked before.')).toBeVisible();
+  });
+
+  it('sends someone with a password to sign in and back', async () => {
+    mockInvitation(
+      buildInvitationPreviewFixture({ has_password: true, email: 'old.hand@zion.co.ke' }),
+    );
+    customRenderAtRoute({ url: URL });
+
+    const link = await screen.findByRole('link', {
+      name: 'Sign in as old.hand@zion.co.ke to join Zion',
+    });
+    expect(link.getAttribute('href')).toContain(
+      '/login?redirect=%2Faccept-invite%3Ftoken%3Dabc123',
+    );
+  });
+
+  it('accepts with one button when signed in', async () => {
+    mockInvitation(buildInvitationPreviewFixture({ has_password: true }));
+    const { calls } = recordAccepts();
+    server.use(http.get(mockEndpoints.me, () => HttpResponse.json({ data: buildUserFixture() })));
+    const { router } = customRenderAtRoute({ url: URL });
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole('button', { name: 'Join Zion' }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/');
+    });
+    expect(calls).toEqual([{ token: 'abc123', body: null }]);
+  });
+
+  it('shows a signed-in-as-someone-else message with sign out', async () => {
+    mockInvitation(buildInvitationPreviewFixture({ has_password: true }));
+    recordAccepts(() =>
+      HttpResponse.json({ message: "You're signed in as someone else." }, { status: 403 }),
+    );
+    server.use(http.get(mockEndpoints.me, () => HttpResponse.json({ data: buildUserFixture() })));
+    const { router } = customRenderAtRoute({ url: URL });
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole('button', { name: 'Join Zion' }));
+
+    expect(await screen.findByText("You're signed in as someone else.")).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Sign out' }));
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/login');
+    });
+  });
+
+  describe('says when the link no longer works', () => {
+    it('for a dead link', async () => {
+      mockInvitation(null);
+      customRenderAtRoute({ url: URL });
+
+      expect(
+        await screen.findByRole('heading', { name: 'This invite link no longer works' }),
+      ).toBeVisible();
+      expect(screen.getByRole('link', { name: 'Sign in' }).getAttribute('href')).toBe('/login');
+    });
+
+    it('for a missing token', async () => {
+      customRenderAtRoute({ url: '/accept-invite' });
+
+      expect(
+        await screen.findByRole('heading', { name: 'This invite link no longer works' }),
+      ).toBeVisible();
+    });
+
+    it('when the page is reloaded after a successful accept', async () => {
+      let hasAccepted = false;
+      server.use(
+        http.get(mockEndpoints.invitation, () =>
+          hasAccepted
+            ? HttpResponse.json({ message: 'Not found.' }, { status: 404 })
+            : HttpResponse.json({ data: buildInvitationPreviewFixture() }),
+        ),
+        http.post(mockEndpoints.invitationAccept, () => {
+          hasAccepted = true;
+          return new HttpResponse(null, { status: 204 });
+        }),
+      );
+      const first = customRenderAtRoute({ url: URL });
+      const user = userEvent.setup();
+      await user.type(await screen.findByLabelText('Your name'), 'Njeri Kamau');
+      await user.type(screen.getByLabelText('Password'), 'correct-horse-battery');
+      await user.type(screen.getByLabelText('Confirm password'), 'correct-horse-battery');
+      await user.click(screen.getByRole('button', { name: 'Join Zion' }));
+      await waitFor(() => {
+        expect(first.router.state.location.pathname).toBe('/');
+      });
+      first.unmount();
+
+      customRenderAtRoute({ url: URL });
+
+      expect(
+        await screen.findByRole('heading', { name: 'This invite link no longer works' }),
+      ).toBeVisible();
+    });
+  });
+});
