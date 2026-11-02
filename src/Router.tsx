@@ -24,7 +24,7 @@ import { OrdersPage } from '@/pages/sales/OrdersPage';
 import { StockPage } from '@/pages/inventory/StockPage';
 import { DeliveryZonesPage } from '@/pages/store/DeliveryZonesPage';
 import { StockVariantRoute } from '@/pages/inventory/StockVariantRoute';
-import { RoleDetailPage } from '@/pages/staff/RoleDetailPage';
+import { RoleDetailRoute } from '@/pages/staff/RoleDetailRoute';
 import { RolesPage } from '@/pages/staff/RolesPage';
 import { StaffMemberRoute } from '@/pages/staff/StaffMemberRoute';
 import { StaffPage } from '@/pages/staff/StaffPage';
@@ -198,7 +198,7 @@ export const routes: RouteObject[] = [
                   },
                   {
                     path: ROUTES.ROLE_DETAIL,
-                    element: <RoleDetailPage />,
+                    element: <RoleDetailRoute />,
                     handle: {
                       crumbs: rolesCrumbs,
                       trailingCrumb: 'roleName',

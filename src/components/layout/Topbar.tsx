@@ -5,6 +5,7 @@ import { ChevronRight } from 'lucide-react';
 import { type RouteHandle } from '@/types/routeHandle';
 import { useProductQuery } from '@/hooks/api/queries/catalogue/useProductQuery';
 import { useStockLevelQuery } from '@/hooks/api/queries/inventory/useStockLevelQuery';
+import { useRoleQuery } from '@/hooks/api/queries/staff/useRoleQuery';
 import { useStaffMemberQuery } from '@/hooks/api/queries/staff/useStaffMemberQuery';
 import { useDeliveryQuery } from '@/hooks/api/queries/sales/useDeliveryQuery';
 import { useOrderQuery } from '@/hooks/api/queries/sales/useOrderQuery';
@@ -66,10 +67,11 @@ export function Topbar() {
     shouldLoadStaffMember ? Number(staffMemberIdParam) : Number.NaN,
   );
 
-  // Role details load their own name in a later screen; until then an id that isn't a number is already a
-  // missing page.
+  const roleIdParam = deepestMatch?.params.roleId;
   const hasRoleCrumb = trailingCrumb === 'roleName';
-  const isValidRoleId = isDigits(deepestMatch?.params.roleId);
+  const isValidRoleId = isDigits(roleIdParam);
+  const shouldLoadRole = hasRoleCrumb && isValidRoleId && hasPermission('staff.view');
+  const roleQuery = useRoleQuery(shouldLoadRole ? Number(roleIdParam) : Number.NaN);
 
   let crumbs = deepestHandle?.crumbs ?? [];
   if (
@@ -91,6 +93,8 @@ export function Topbar() {
     crumbs = [...crumbs, getStockVariantName(stockLevelQuery.data)];
   } else if (hasStaffMemberCrumb && staffMemberQuery.data) {
     crumbs = [...crumbs, staffMemberQuery.data.name];
+  } else if (hasRoleCrumb && roleQuery.data) {
+    crumbs = [...crumbs, roleQuery.data.name];
   }
 
   return (
