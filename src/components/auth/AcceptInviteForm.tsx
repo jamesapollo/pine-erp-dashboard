@@ -1,14 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
 
 import { type InvitationPreview } from '@/types/staff';
 import { useAcceptInvitationMutation } from '@/hooks/api/mutations/staff/useAcceptInvitationMutation';
-import { Alert } from '@/components/ui/Alert';
+import { AcceptInviteFailure } from '@/components/auth/AcceptInviteFailure';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { getActionErrorMessage, getFieldError, isStatus } from '@/utils/apiErrors';
-import { ROUTES } from '@/constants/routes';
+import { getFieldError, isStatus } from '@/utils/apiErrors';
 
 import { acceptInviteSchema, type AcceptInviteFormData } from './acceptInviteSchema';
 
@@ -20,7 +18,6 @@ export function AcceptInviteForm({
   token: string;
   invitation: InvitationPreview;
 }) {
-  const navigate = useNavigate();
   const acceptInvitationMutation = useAcceptInvitationMutation();
   const {
     register,
@@ -44,9 +41,6 @@ export function AcceptInviteForm({
     acceptInvitationMutation.mutate(
       { token, body: data },
       {
-        onSuccess: () => {
-          void navigate(ROUTES.ROOT, { replace: true });
-        },
         onError: (mutationError) => {
           if (!isStatus(mutationError, 422)) return;
           for (const field of ['name', 'password', 'password_confirmation'] as const) {
@@ -60,7 +54,7 @@ export function AcceptInviteForm({
 
   return (
     <form noValidate onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-      {error && !hasFieldError ? <Alert tone="danger">{getActionErrorMessage(error)}</Alert> : null}
+      {error && !hasFieldError ? <AcceptInviteFailure error={error} /> : null}
       <Input label="Email" type="email" value={invitation.email} readOnly autoComplete="username" />
       <Input
         label="Your name"

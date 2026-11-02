@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 
 import { type InvitationPreview } from '@/types/staff';
 import { customRenderAtRoute } from '@/tests/customRender';
@@ -36,14 +36,21 @@ function recordAccepts(respond?: () => Response) {
   return { calls, hasAccepted: () => hasAccepted };
 }
 
+async function expectNoDeadLinkWhileSessionReloads() {
+  // The session reload after joining is slow; the page must not flash the dead-link screen meanwhile.
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  expect(screen.queryByRole('heading', { name: 'This invite link no longer works' })).toBeNull();
+}
+
 describe('Accept invite', () => {
   it('lets a new person join', async () => {
     mockInvitation(buildInvitationPreviewFixture({ has_password: false }));
     const { calls, hasAccepted } = recordAccepts();
     let isSignedIn = false;
     server.use(
-      http.get(mockEndpoints.me, () => {
+      http.get(mockEndpoints.me, async () => {
         isSignedIn = hasAccepted();
+        if (isSignedIn) await delay(300);
         return isSignedIn
           ? HttpResponse.json({ data: buildUserFixture() })
           : HttpResponse.json({ message: 'Unauthenticated.' }, { status: 401 });
@@ -57,6 +64,7 @@ describe('Accept invite', () => {
     await user.type(screen.getByLabelText('Confirm password'), 'correct-horse-battery');
     await user.click(screen.getByRole('button', { name: 'Join Zion' }));
 
+    await expectNoDeadLinkWhileSessionReloads();
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/');
     });
@@ -108,6 +116,24 @@ describe('Accept invite', () => {
     expect(await screen.findByText('That password has leaked before.')).toBeVisible();
   });
 
+  it('shows the API message and sign out when a signed-in person opens a new-person invite', async () => {
+    mockInvitation(buildInvitationPreviewFixture({ has_password: false }));
+    recordAccepts(() =>
+      HttpResponse.json({ message: "You're signed in as someone else." }, { status: 403 }),
+    );
+    server.use(http.get(mockEndpoints.me, () => HttpResponse.json({ data: buildUserFixture() })));
+    customRenderAtRoute({ url: URL });
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByLabelText('Your name'), 'Njeri Kamau');
+    await user.type(screen.getByLabelText('Password'), 'correct-horse-battery');
+    await user.type(screen.getByLabelText('Confirm password'), 'correct-horse-battery');
+    await user.click(screen.getByRole('button', { name: 'Join Zion' }));
+
+    expect(await screen.findByText("You're signed in as someone else.")).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeVisible();
+  });
+
   it('sends someone with a password to sign in and back', async () => {
     mockInvitation(
       buildInvitationPreviewFixture({ has_password: true, email: 'old.hand@zion.co.ke' }),
@@ -124,13 +150,19 @@ describe('Accept invite', () => {
 
   it('accepts with one button when signed in', async () => {
     mockInvitation(buildInvitationPreviewFixture({ has_password: true }));
-    const { calls } = recordAccepts();
-    server.use(http.get(mockEndpoints.me, () => HttpResponse.json({ data: buildUserFixture() })));
+    const { calls, hasAccepted } = recordAccepts();
+    server.use(
+      http.get(mockEndpoints.me, async () => {
+        if (hasAccepted()) await delay(300);
+        return HttpResponse.json({ data: buildUserFixture() });
+      }),
+    );
     const { router } = customRenderAtRoute({ url: URL });
     const user = userEvent.setup();
 
     await user.click(await screen.findByRole('button', { name: 'Join Zion' }));
 
+    await expectNoDeadLinkWhileSessionReloads();
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/');
     });
