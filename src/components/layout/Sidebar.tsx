@@ -6,8 +6,10 @@ import {
   LogOut,
   MapPin,
   Package,
+  ShieldCheck,
   ShoppingBag,
   Truck,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -34,6 +36,7 @@ export function Sidebar({
 }) {
   const { signOut, isSigningOut, hasFailed } = useSignOut();
   const canViewOrders = permissions.includes('orders.view');
+  const canViewStaff = permissions.includes('staff.view');
   const pendingOrderCount = usePendingOrderCountQuery({ enabled: canViewOrders });
   const [primaryRole = ''] = roles;
   const roleLabel = primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1);
@@ -75,9 +78,17 @@ export function Sidebar({
             <SidebarLink to={ROUTES.STOCK} icon={Boxes} label="Stock" />
           </SidebarGroup>
         ) : null}
-        {canViewOrders ? (
+        {canViewOrders || canViewStaff ? (
           <SidebarGroup label="Store">
-            <SidebarLink to={ROUTES.DELIVERY_ZONES} icon={MapPin} label="Delivery zones" />
+            {canViewStaff ? (
+              <>
+                <SidebarLink to={ROUTES.STAFF} icon={Users} label="Staff" />
+                <SidebarLink to={ROUTES.ROLES} icon={ShieldCheck} label="Roles" />
+              </>
+            ) : null}
+            {canViewOrders ? (
+              <SidebarLink to={ROUTES.DELIVERY_ZONES} icon={MapPin} label="Delivery zones" />
+            ) : null}
           </SidebarGroup>
         ) : null}
       </nav>

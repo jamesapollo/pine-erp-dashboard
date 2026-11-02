@@ -10,6 +10,7 @@ import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { OverviewPage } from '@/pages/OverviewPage';
+import { AcceptInvitePage } from '@/pages/AcceptInvitePage';
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { CategoriesPage } from '@/pages/products/CategoriesPage';
 import { OptionTypesPage } from '@/pages/products/OptionTypesPage';
@@ -23,12 +24,18 @@ import { OrdersPage } from '@/pages/sales/OrdersPage';
 import { StockPage } from '@/pages/inventory/StockPage';
 import { DeliveryZonesPage } from '@/pages/store/DeliveryZonesPage';
 import { StockVariantRoute } from '@/pages/inventory/StockVariantRoute';
+import { RoleDetailPage } from '@/pages/staff/RoleDetailPage';
+import { RolesPage } from '@/pages/staff/RolesPage';
+import { StaffMemberPage } from '@/pages/staff/StaffMemberPage';
+import { StaffPage } from '@/pages/staff/StaffPage';
 import { type RouteHandle } from '@/types/routeHandle';
 
 const productsCrumbs = ['Catalogue', 'Products'];
 const ordersCrumbs = ['Sales', 'Orders'];
 const deliveriesCrumbs = ['Sales', 'Deliveries'];
 const stockCrumbs = ['Inventory', 'Stock'];
+const staffCrumbs = ['Store', 'Staff'];
+const rolesCrumbs = ['Store', 'Roles'];
 
 export const routes: RouteObject[] = [
   {
@@ -42,6 +49,7 @@ export const routes: RouteObject[] = [
         ],
       },
       { path: ROUTES.RESET_PASSWORD, element: <ResetPasswordPage /> },
+      { path: ROUTES.ACCEPT_INVITE, element: <AcceptInvitePage /> },
       {
         element: <ProtectedRoute />,
         children: [
@@ -161,6 +169,39 @@ export const routes: RouteObject[] = [
                     handle: {
                       crumbs: stockCrumbs,
                       trailingCrumb: 'stockVariantName',
+                    } satisfies RouteHandle,
+                  },
+                ],
+              },
+              {
+                element: (
+                  <RequirePermission slug="staff.view" message="You don't have access to staff." />
+                ),
+                children: [
+                  {
+                    path: ROUTES.STAFF,
+                    element: <StaffPage />,
+                    handle: { crumbs: staffCrumbs } satisfies RouteHandle,
+                  },
+                  {
+                    path: ROUTES.STAFF_MEMBER,
+                    element: <StaffMemberPage />,
+                    handle: {
+                      crumbs: staffCrumbs,
+                      trailingCrumb: 'staffMemberName',
+                    } satisfies RouteHandle,
+                  },
+                  {
+                    path: ROUTES.ROLES,
+                    element: <RolesPage />,
+                    handle: { crumbs: rolesCrumbs } satisfies RouteHandle,
+                  },
+                  {
+                    path: ROUTES.ROLE_DETAIL,
+                    element: <RoleDetailPage />,
+                    handle: {
+                      crumbs: rolesCrumbs,
+                      trailingCrumb: 'roleName',
                     } satisfies RouteHandle,
                   },
                 ],

@@ -40,6 +40,8 @@ const orders = (storeId: number) => ['stores', storeId, 'orders'] as const;
 const deliveries = (storeId: number) => ['stores', storeId, 'deliveries'] as const;
 const allStockMovements = (storeId: number) => ['stores', storeId, 'stock-movements'] as const;
 const stockLevels = (storeId: number) => ['stores', storeId, 'stock-levels'] as const;
+const staff = (storeId: number) => ['stores', storeId, 'staff'] as const;
+const roles = (storeId: number) => ['stores', storeId, 'roles'] as const;
 
 export const queryKeys = {
   me: ['me'],
@@ -71,4 +73,11 @@ export const queryKeys = {
     [...deliveries(storeId), 'detail', deliveryId] as const,
   couriers: (storeId: number) => ['stores', storeId, 'couriers'] as const,
   deliveryZones: (storeId: number) => ['stores', storeId, 'delivery-zones'] as const,
+  staff,
+  staffMember: (storeId: number, memberId: number) =>
+    [...staff(storeId), 'detail', memberId] as const,
+  roles,
+  role: (storeId: number, roleId: number) => [...roles(storeId), 'detail', roleId] as const,
+  permissions: (storeId: number) => ['stores', storeId, 'permissions'] as const,
+  invitation: (token: string) => ['invitations', token] as const,
 } as const;

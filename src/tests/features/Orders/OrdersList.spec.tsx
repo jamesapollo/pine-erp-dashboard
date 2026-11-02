@@ -346,6 +346,8 @@ describe('Sales navigation', () => {
       'Deliveries',
       'Products',
       'Stock',
+      'Staff',
+      'Roles',
       'Delivery zones',
     ]);
   });

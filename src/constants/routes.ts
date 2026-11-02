@@ -15,6 +15,11 @@ export const ROUTES = {
   STOCK: '/inventory',
   STOCK_VARIANT: '/inventory/:variantId',
   DELIVERY_ZONES: '/delivery-zones',
+  STAFF: '/staff',
+  STAFF_MEMBER: '/staff/:memberId',
+  ROLES: '/roles',
+  ROLE_DETAIL: '/roles/:roleId',
+  ACCEPT_INVITE: '/accept-invite',
   CATCH_ALL: '*',
 } as const;
 
@@ -32,4 +37,12 @@ export function buildDeliveryPath(deliveryId: number): string {
 
 export function buildStockVariantPath(variantId: number): string {
   return `${ROUTES.STOCK}/${variantId}`;
+}
+
+export function buildStaffMemberPath(memberId: number): string {
+  return `${ROUTES.STAFF}/${memberId}`;
+}
+
+export function buildRolePath(roleId: number): string {
+  return `${ROUTES.ROLES}/${roleId}`;
 }

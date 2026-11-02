@@ -56,12 +56,21 @@ export function Topbar() {
     shouldLoadStockVariant ? Number(variantIdParam) : Number.NaN,
   );
 
+  // Staff and role details load their own name in later screens; until then an id that isn't a number is
+  // already a missing page.
+  const hasStaffMemberCrumb = trailingCrumb === 'staffMemberName';
+  const hasRoleCrumb = trailingCrumb === 'roleName';
+  const isValidStaffMemberId = isDigits(deepestMatch?.params.memberId);
+  const isValidRoleId = isDigits(deepestMatch?.params.roleId);
+
   let crumbs = deepestHandle?.crumbs ?? [];
   if (
     (hasProductCrumb && !isValidProductId) ||
     (hasOrderCrumb && !isValidOrderId) ||
     (hasDeliveryCrumb && !isValidDeliveryId) ||
-    (hasStockVariantCrumb && !isValidVariantId)
+    (hasStockVariantCrumb && !isValidVariantId) ||
+    (hasStaffMemberCrumb && !isValidStaffMemberId) ||
+    (hasRoleCrumb && !isValidRoleId)
   ) {
     crumbs = ['Page not found'];
   } else if (hasProductCrumb && productQuery.data) {
