@@ -3,11 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 
 import { customRenderAtRoute } from '@/tests/customRender';
-import {
-  buildRoleDetailFixture,
-  buildRoleFixture,
-  buildStaffMemberFixture,
-} from '@/tests/fixtures/staff';
+import { buildRoleFixture, buildStaffMemberFixture } from '@/tests/fixtures/staff';
 import { buildUserFixture } from '@/tests/fixtures/user';
 import { mockEndpoints } from '@/tests/mocks/endpoints';
 import { server } from '@/tests/mocks/server';
@@ -89,7 +85,7 @@ describe('Roles list', () => {
       http.post(mockEndpoints.roles, async ({ request }) => {
         body = await request.json();
         return HttpResponse.json(
-          { data: buildRoleDetailFixture({ id: 7, name: 'Cashier', permissions: [] }) },
+          { data: buildRoleFixture({ id: 7, name: 'Cashier', permissions: [] }) },
           { status: 201 },
         );
       }),
@@ -149,6 +145,31 @@ describe('Roles list', () => {
 
     await screen.findByRole('table', { name: 'Roles' });
     expect(screen.queryByRole('button', { name: 'New role' })).not.toBeInTheDocument();
+  });
+
+  it('shows four avatars and the rest as a count', async () => {
+    respondWithRoles();
+    const crowdedRole = buildRoleFixture({ id: 9, name: 'Crowd', slug: 'crowd', member_count: 6 });
+    server.use(
+      http.get(mockEndpoints.roles, () => HttpResponse.json({ data: [crowdedRole] })),
+      http.get(mockEndpoints.staff, () =>
+        HttpResponse.json({
+          data: ['Amina Said', 'Ben Oduya', 'Chao Wei', 'Dina Roth', 'Eli Kane', 'Fay Lund'].map(
+            (name, index) =>
+              buildStaffMemberFixture({
+                id: 30 + index,
+                name,
+                role: { id: 9, name: 'Crowd', slug: 'crowd', is_system: false },
+              }),
+          ),
+        }),
+      ),
+    );
+    customRenderAtRoute({ url: '/roles' });
+
+    const table = await screen.findByRole('table', { name: 'Roles' });
+    expect(await within(table).findByText('+2')).toBeVisible();
+    expect(table.querySelectorAll('span[title]')).toHaveLength(4);
   });
 
   it('opens a role from the list', async () => {

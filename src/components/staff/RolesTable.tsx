@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { DataTable } from '@/components/ui/DataTable';
 import { Icon } from '@/components/ui/Icon';
 import { countVisiblePermissions } from '@/utils/rolePermissions';
+import { cn } from '@/utils/cn';
 import { PERMISSION_GROUPS } from '@/constants/permissions';
 import { buildRolePath } from '@/constants/routes';
 
@@ -16,19 +17,24 @@ const visiblePermissionTotal = PERMISSION_GROUPS.flatMap((group) => group.slugs)
 function RoleMembers({ role, members }: { role: Role; members: StaffMember[] }) {
   if (role.member_count === 0) return <span className="text-text-tertiary">None</span>;
 
+  const shownMembers = members.slice(0, MAX_AVATARS);
+  const hiddenCount = role.member_count - shownMembers.length;
+
   return (
     <span className="inline-flex items-center gap-2">
       <span className="inline-flex">
-        {members.slice(0, MAX_AVATARS).map((member, index) => (
+        {shownMembers.map((member, index) => (
           <span
             key={member.id}
-            className={`rounded-full shadow-[0_0_0_2px_var(--surface-card)] ${index ? '-ml-2' : ''}`}
+            className={cn('rounded-full shadow-[0_0_0_2px_var(--surface-card)]', index && '-ml-2')}
           >
             <Avatar name={member.name} size={24} />
           </span>
         ))}
       </span>
-      <span className="text-text-secondary">{role.member_count}</span>
+      <span className="text-text-secondary">
+        {role.member_count > MAX_AVATARS && hiddenCount > 0 ? `+${hiddenCount}` : role.member_count}
+      </span>
     </span>
   );
 }

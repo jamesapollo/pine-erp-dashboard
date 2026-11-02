@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { type RoleDetail } from '@/types/staff';
+import { type Role, type RoleDetail } from '@/types/staff';
 import { queryKeys } from '@/hooks/api/queryKeys';
 import { useAuthedSession } from '@/hooks/useAuthedSession';
 import { useToastContext } from '@/components/ui/ToastContext';
@@ -23,16 +23,20 @@ export function useSaveRoleMutation() {
       const path = storePath(store.id, roleId === undefined ? '/roles' : `/roles/${roleId}`);
       const { data } =
         roleId === undefined
-          ? await axiosInstance.post<{ data: RoleDetail }>(path, body)
-          : await axiosInstance.patch<{ data: RoleDetail }>(path, body);
+          ? await axiosInstance.post<{ data: Role }>(path, body)
+          : await axiosInstance.patch<{ data: Role }>(path, body);
       return data.data;
     },
-    onSuccess: async (role, { roleId }) => {
-      queryClient.setQueryData(queryKeys.role(store.id, role.id), role);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.roles(store.id) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.staff(store.id) }),
-      ]);
+    onSuccess: (role, { roleId }) => {
+      // The answer has no members, so an update keeps the cached detail's; a new role has none cached.
+      if (roleId !== undefined) {
+        queryClient.setQueryData<RoleDetail>(queryKeys.role(store.id, role.id), (previous) =>
+          previous ? { ...previous, ...role } : previous,
+        );
+      }
+      // Not awaited: the list refreshes in the background while the caller carries on.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.roles(store.id) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.staff(store.id) });
       showToast({ title: roleId === undefined ? 'Role created' : 'Role saved' });
     },
   });
