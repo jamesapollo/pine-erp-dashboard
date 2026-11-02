@@ -73,6 +73,7 @@ function InviteStaffForm({ roles, onClose }: { roles: Role[]; onClose: () => voi
   });
   const selectedRoleId = useWatch({ control, name: 'roleId' });
   const selectedRole = assignableRoles.find((role) => String(role.id) === selectedRoleId);
+  const permissionCount = selectedRole ? countVisiblePermissions(selectedRole.permissions) : 0;
 
   const serverEmailError = getFieldError(inviteMutation.error, 'email');
   const serverRoleError = getFieldError(inviteMutation.error, 'role_id');
@@ -121,7 +122,7 @@ function InviteStaffForm({ roles, onClose }: { roles: Role[]; onClose: () => voi
           options={assignableRoles.map((role) => ({ value: String(role.id), label: role.name }))}
           hint={
             selectedRole
-              ? `${countVisiblePermissions(selectedRole.permissions)} permissions`
+              ? `${permissionCount} ${permissionCount === 1 ? 'permission' : 'permissions'}`
               : undefined
           }
           error={errors.roleId?.message ?? serverRoleError}

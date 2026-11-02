@@ -189,6 +189,29 @@ describe('Staff list', () => {
     expect(await screen.findByText("They'll get an email to set a password.")).toBeVisible();
   });
 
+  it('words the permission hint in the singular for a one-permission role', async () => {
+    respondWithTeam();
+    const viewerRole = buildRoleFixture({
+      id: 4,
+      name: 'Viewer',
+      slug: 'viewer',
+      is_system: false,
+      permissions: ['store.view', 'orders.view'],
+    });
+    server.use(
+      http.get(mockEndpoints.roles, () =>
+        HttpResponse.json({ data: [ownerRole, staffRole, viewerRole] }),
+      ),
+    );
+    customRenderAtRoute({ url: '/staff' });
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Invite staff' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Invite staff' });
+    await userEvent.selectOptions(within(dialog).getByLabelText('Role'), 'Viewer');
+
+    expect(within(dialog).getByText('1 permission')).toBeVisible();
+  });
+
   it('hides invite and manage roles without staff.manage', async () => {
     respondWithTeam({ permissions: ['store.view', 'staff.view'] });
     customRenderAtRoute({ url: '/staff' });
