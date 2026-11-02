@@ -43,12 +43,13 @@ A reference guide for developers working on this codebase. Covers architecture, 
 
 ```
 src/
-├── components/     # UI components: ui/ (primitives), auth/, layout/, products/, sales/, inventory/, store/
+├── components/     # UI components: ui/ (primitives), auth/, layout/, products/, sales/, inventory/, store/,
+│                   # staff/
 ├── constants/      # Global constants (UPPER_CASE exports), e.g. routes.ts
 ├── hooks/          # Custom hooks (generic + API-specific)
 ├── pages/          # Page-level route components (products/ the catalogue screens, sales/ orders and deliveries,
 │                   # inventory/ the stock list and one variant's stock, store/ delivery zones, staff/ the staff
-│                   # and roles screens, plus the public AcceptInvitePage)
+│                   # and roles screens; the public AcceptInvitePage sits at pages/AcceptInvitePage.tsx)
 ├── styles/tokens/  # Design-token CSS copied verbatim from the Commerce ERP design system
 ├── tests/          # Test infra, fixtures, MSW handlers
 ├── types/          # TypeScript type definitions
@@ -73,15 +74,16 @@ src/
 ```
 components/
 ├── ui/        # Design-system primitives (Button, Input, Card, Alert, Icon, …)
-├── auth/      # Sign-in, forgot/reset and accept-invite forms (AcceptInviteForm, AcceptInviteFailure, +
-│              # acceptInviteSchema), ProtectedRoute (+ AuthedSessionContext), GuestRoute, RequirePermission
+├── auth/      # Sign-in, forgot/reset and accept-invite forms (AcceptInviteForm + acceptInviteSchema for a new
+│              # person, AcceptInviteExistingAccount for someone who has an account, AcceptInviteFailure),
+│              # ProtectedRoute (+ AuthedSessionContext), GuestRoute, RequirePermission
 ├── layout/    # AuthLayout and the signed-in AppShell (Sidebar, Topbar)
 ├── products/  # Catalogue screens' forms, cards, tables and dialogs (ProductNewForm, ProductDetailForm, …)
 ├── sales/     # Orders and deliveries: tables, detail cards, header actions and their dialogs (OrdersTable,
 │              # OrderHeaderActions, DispatchOrderDialog, DeliveryHeaderActions, DeliveryTrackingDialog, …)
 ├── inventory/ # Stock screens: StockLevelsTable, VariantTransactionsCard, StockAdjustDialog (+ stockAdjustSchema)
-└── store/     # Store settings: DeliveryZonesTable, CheckoutPreviewCard, DeliveryZoneDialog (+ deliveryZoneSchema),
-               # DeleteDeliveryZoneDialog, AddCountryDialog
+├── store/     # Store settings: DeliveryZonesTable, CheckoutPreviewCard, DeliveryZoneDialog (+ deliveryZoneSchema),
+│              # DeleteDeliveryZoneDialog, AddCountryDialog
 └── staff/     # Staff and roles: StaffTable, InviteStaffDialog (+ inviteStaffSchema), StaffHeaderActions,
                # StaffActionDialog, StaffProfileCard (+ staffNameSchema), StaffRoleCard, RemoveStaffCard,
                # RolesTable, NewRoleDialog, DeleteRoleDialog, RoleEditorForm, RolePermissionsList (+ roleSchema)
@@ -110,6 +112,9 @@ Besides the originals (`Button`, `IconButton`, `Input`, `Card`, `Alert`, `Icon`,
 | `Dialog`                         | Modal dialog (confirmations, add category, add variant, …)                                        |
 | `Toast` + `ToastContextProvider` | Notifications; call `useToastContext().showToast({ title, tone })`                                |
 | `NoAccess`                       | The "no permission" screen rendered by `RequirePermission`                                        |
+
+`StatusBadge` also has a `membership` kind for a staff member's status: `invited`, `active`, and `suspended` (the
+API's word), shown as "Deactivated". Pass the API status as-is.
 
 Products and sales sub-components keep form schemas next to the form (`productNewSchema.ts`, `productDetailSchema.ts`,
 `cancelOrderSchema.ts`, `markDeliveryFailedSchema.ts`, …).
@@ -604,8 +609,11 @@ Never write a path string inline; use `ROUTES`, and `buildProductPath(id)`, `bui
 `buildDeliveryPath(id)`, `buildStaffMemberPath(id)` or `buildRolePath(id)` for a detail link. There is no sign-up
 route. Staff join by invitation: someone with `staff.manage` invites an email address, the person opens the emailed
 link at `ROUTES.ACCEPT_INVITE` (`?token=…`), and `AcceptInvitePage` (public, in `AuthLayout`, outside `GuestRoute` and
-`ProtectedRoute`) previews the invitation with `useInvitationQuery` and sets their name and password through
-`useAcceptInvitationMutation`.
+`ProtectedRoute`) previews the invitation with `useInvitationQuery` and accepts it through
+`useAcceptInvitationMutation`. Only a new person (`has_password: false`) sets a name and password there
+(`AcceptInviteForm`). Someone who already has an account (`AcceptInviteExistingAccount`) must be signed in as that
+person: signed out, they get a sign-in link that returns to the invite; signed in, "Join {store}" accepts with no
+fields.
 
 ### Breadcrumbs and permission gates
 
@@ -668,7 +676,9 @@ type Session =
   `error`, redirects `anon` to `ROUTES.LOGIN`, shows a no-access screen for `no-store`, and renders `<Outlet />`
   inside `AuthedSessionContextProvider` when `authed`.
 - `GuestRoute` (`components/auth/GuestRoute.tsx`) owns the post-sign-in redirect: an `authed` user goes to
-  `getSafeRedirectPath(?redirect)` (replace), a `no-store` user to `ROUTES.ROOT`. `LoginForm` does not navigate itself.
+  `getSafeRedirectPath(?redirect)` (replace), a `no-store` user to `ROUTES.ROOT`, except when the safe redirect is
+  `ROUTES.ACCEPT_INVITE`: `GET /me` lists only active memberships, so a re-invited person signs in as `no-store` and
+  must get back to the invite to join. `LoginForm` does not navigate itself.
 - Auth actions are mutations (`useSignInMutation`, `useSignOutMutation`, `useForgotPasswordMutation`,
   `useResetPasswordMutation`). Sign-in seeds or invalidates the `me` query; sign-out (`useSignOut`) clears the query
   cache and navigates to login only after the server confirms (204) or reports the session already gone (401); on any
@@ -735,7 +745,8 @@ src/types/
 │                    # StockMovement, Paginated<T>
 ├── routeHandle.ts   # RouteHandle for route breadcrumbs
 ├── sales.ts         # Order, OrderListItem, OrderLine, Delivery, DeliveryListItem, DeliveryTimelineEvent, Courier
-├── staff.ts         # StaffMember, StaffRole, Role, RoleDetail, Permission, InvitationPreview
+├── staff.ts         # StaffStatus, StaffRoleSummary, StaffInvitation, StaffMember, Role, RoleMember, RoleDetail,
+│                    # Permission, InvitationPreview
 └── session.ts
 ```
 
@@ -957,7 +968,12 @@ utils/
 ├── apiErrors.ts       # status and field-error helpers
 ├── storePath.ts       # storePath(storeId, path) → /api/v1/stores/{storeId}{path}
 ├── money.ts           # formatMoney, formatAmount, isValidPrice, toMoneyInput
+├── staffCache.ts      # invalidateTeamQueries, storeStaffMemberResponse, refreshAfterStaffMemberGone
+├── rolePermissions.ts # togglePermission (keeps a manage permission's view one), countVisiblePermissions
 └── queryClient.ts     # the single QueryClient
+
+constants/
+└── permissions.ts     # PERMISSION_GROUPS, HIDDEN_PERMISSION_SLUGS, PERMISSION_DEPENDENCIES, OWNER_ROLE_SLUG
 ```
 
 Catalogue endpoints are store-scoped (`storePath(store.id, '/products')`, `'/categories'`, `'/option-types'`);
@@ -970,8 +986,11 @@ same rule `getStockStatus` and `StockCount` use. Lists come back as
 Staff endpoints are store-scoped too: `'/staff'` (members, `/staff/invitations`, `/staff/{memberId}` with its
 `/deactivate`, `/reactivate`, `/password-reset` and `/invitation` actions), `'/roles'` and `'/permissions'`. The
 invitation endpoints are public and not store-scoped: `GET /api/v1/invitations/{token}` previews an invitation and
-`POST /api/v1/invitations/{token}/accept` accepts it, with the token in the path, no `storePath`, and no session
-needed.
+`POST /api/v1/invitations/{token}/accept` accepts it, with the token in the path and no `storePath`. A new person's
+accept sends `name`, `password` and `password_confirmation` and needs no session; an existing account's accept needs a
+signed-in session as the invited person and sends no body. Member mutations that get a member back write it with
+`storeStaffMemberResponse`; every team change refreshes the staff and roles lists with `invalidateTeamQueries`, and a
+rename of the signed-in person also invalidates `me` so the sidebar shows the new name.
 
 ### Axios instance features
 
