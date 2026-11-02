@@ -161,6 +161,60 @@ describe('Staff member detail', () => {
     expect(body).toEqual({ name: 'Brian M' });
   });
 
+  it('updates the sidebar name when the signed-in person renames themselves', async () => {
+    const ownerMember = buildStaffMemberFixture({
+      id: 10,
+      user_id: 1,
+      name: 'Wanjiru Kamau',
+      is_owner: true,
+      role: { id: 1, name: 'Owner', slug: 'owner', is_system: true },
+    });
+    respondWithMember(ownerMember);
+    let currentName = 'Wanjiru Kamau';
+    server.use(
+      http.get(mockEndpoints.me, () =>
+        HttpResponse.json({ data: buildUserFixture({ name: currentName }) }),
+      ),
+      http.patch(mockEndpoints.staffMember, () => {
+        currentName = 'Wanjiru K';
+        return HttpResponse.json({ data: { ...ownerMember, name: currentName } });
+      }),
+    );
+    customRenderAtRoute({ url: '/staff/10' });
+
+    const nameInput = await screen.findByLabelText('Name');
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, 'Wanjiru K');
+    await userEvent.click(screen.getByRole('button', { name: 'Save name' }));
+
+    expect(await screen.findByText('Name saved')).toBeVisible();
+    const sidebar = screen.getByRole('complementary');
+    expect(await within(sidebar).findByText('Wanjiru K')).toBeVisible();
+  });
+
+  it('does not reload the session when someone else is renamed', async () => {
+    respondWithMember(buildStaffMemberFixture());
+    let meRequests = 0;
+    server.use(
+      http.get(mockEndpoints.me, () => {
+        meRequests += 1;
+        return HttpResponse.json({ data: buildUserFixture() });
+      }),
+      http.patch(mockEndpoints.staffMember, () =>
+        HttpResponse.json({ data: buildStaffMemberFixture({ name: 'Brian M' }) }),
+      ),
+    );
+    customRenderAtRoute({ url: '/staff/11' });
+
+    const nameInput = await screen.findByLabelText('Name');
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, 'Brian M');
+    await userEvent.click(screen.getByRole('button', { name: 'Save name' }));
+
+    expect(await screen.findByText('Name saved')).toBeVisible();
+    expect(meRequests).toBe(1);
+  });
+
   it('lists what the role can do without hidden permissions', async () => {
     respondWithMember(buildStaffMemberFixture());
     customRenderAtRoute({ url: '/staff/11' });
