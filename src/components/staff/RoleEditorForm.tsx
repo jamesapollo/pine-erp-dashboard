@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useBlocker } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm, useWatch, type Control } from 'react-hook-form';
@@ -197,6 +197,8 @@ export function RoleEditorForm({ role }: { role: RoleDetail }) {
   const { hasPermission } = useAuthedSession();
   const saveMutation = useSaveRoleMutation();
   const [isDeleting, setIsDeleting] = useState(false);
+  // Set once the role is deleted: its unsaved edits are gone with it, so leaving needs no prompt.
+  const isLeavingRef = useRef(false);
   const isReadOnly = role.is_system || !hasPermission('staff.manage');
   const {
     register,
@@ -216,7 +218,10 @@ export function RoleEditorForm({ role }: { role: RoleDetail }) {
 
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      isDirty && !isSaving && currentLocation.pathname !== nextLocation.pathname,
+      isDirty &&
+      !isSaving &&
+      !isLeavingRef.current &&
+      currentLocation.pathname !== nextLocation.pathname,
   );
 
   useEffect(() => {
@@ -328,7 +333,15 @@ export function RoleEditorForm({ role }: { role: RoleDetail }) {
           )}
         </div>
       </form>
-      {isDeleting ? <DeleteRoleDialog role={role} onClose={() => setIsDeleting(false)} /> : null}
+      {isDeleting ? (
+        <DeleteRoleDialog
+          role={role}
+          onClose={() => setIsDeleting(false)}
+          onDeleted={() => {
+            isLeavingRef.current = true;
+          }}
+        />
+      ) : null}
       <UnsavedChangesDialog
         isOpen={blocker.state === 'blocked'}
         onKeepEditing={() => blocker.reset?.()}

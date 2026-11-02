@@ -206,6 +206,38 @@ describe('Role editor', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/roles'));
   });
 
+  it('deletes an edited role without asking to discard the changes', async () => {
+    respondWithRole(packerRole);
+    server.use(http.delete(mockEndpoints.role, () => new HttpResponse(null, { status: 204 })));
+    const { router } = customRenderAtRoute({ url: '/roles/5' });
+
+    await userEvent.click(await findPermissionCheckbox('View orders'));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete role' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Delete Packer?' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Delete role' }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/roles'));
+    expect(screen.queryByRole('dialog', { name: 'Discard changes?' })).not.toBeInTheDocument();
+  });
+
+  it('leaves without asking after a successful save', async () => {
+    respondWithRole(packerRole);
+    server.use(
+      http.patch(mockEndpoints.role, () =>
+        HttpResponse.json({ data: { ...packerRole, permissions: ['store.view', 'orders.view'] } }),
+      ),
+    );
+    const { router } = customRenderAtRoute({ url: '/roles/5' });
+
+    await userEvent.click(await findPermissionCheckbox('View orders'));
+    await userEvent.click(screen.getByRole('button', { name: 'Save role' }));
+    expect(await screen.findByText('Role saved')).toBeVisible();
+    await userEvent.click(within(screen.getByRole('main')).getByRole('link', { name: 'Roles' }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/roles'));
+    expect(screen.queryByRole('dialog', { name: 'Discard changes?' })).not.toBeInTheDocument();
+  });
+
   it('shows the role name in the breadcrumb', async () => {
     respondWithRole(packerRole);
     customRenderAtRoute({ url: '/roles/5' });

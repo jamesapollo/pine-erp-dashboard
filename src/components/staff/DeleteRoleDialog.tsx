@@ -12,7 +12,15 @@ import { Dialog } from '@/components/ui/Dialog';
 import { getActionErrorMessage } from '@/utils/apiErrors';
 import { ROUTES } from '@/constants/routes';
 
-export function DeleteRoleDialog({ role, onClose }: { role: RoleDetail; onClose: () => void }) {
+export function DeleteRoleDialog({
+  role,
+  onClose,
+  onDeleted,
+}: {
+  role: RoleDetail;
+  onClose: () => void;
+  onDeleted: () => void;
+}) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { store } = useAuthedSession();
@@ -47,6 +55,7 @@ export function DeleteRoleDialog({ role, onClose }: { role: RoleDetail; onClose:
               deleteMutation.mutate(role, {
                 onSuccess: () => {
                   isDeleted.current = true;
+                  onDeleted();
                   navigate(ROUTES.ROLES);
                 },
               })
