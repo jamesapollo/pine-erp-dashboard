@@ -148,6 +148,49 @@ describe('Accept invite', () => {
     );
   });
 
+  it('brings someone with a password back to join after signing in with no active store', async () => {
+    mockInvitation(
+      buildInvitationPreviewFixture({ has_password: true, email: 'old.hand@zion.co.ke' }),
+    );
+    const { hasAccepted } = recordAccepts();
+    let isSignedIn = false;
+    server.use(
+      http.post(mockEndpoints.login, () => {
+        isSignedIn = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+      http.get(mockEndpoints.me, () => {
+        if (!isSignedIn) {
+          return HttpResponse.json({ message: 'Unauthenticated.' }, { status: 401 });
+        }
+        // The API lists only active memberships, so a re-invited person has none until they join.
+        return HttpResponse.json({
+          data: hasAccepted() ? buildUserFixture() : buildUserFixture({ memberships: [] }),
+        });
+      }),
+    );
+    const { router } = customRenderAtRoute({ url: URL });
+    const user = userEvent.setup();
+
+    await user.click(
+      await screen.findByRole('link', { name: 'Sign in as old.hand@zion.co.ke to join Zion' }),
+    );
+    await user.type(await screen.findByLabelText('Email'), 'old.hand@zion.co.ke');
+    await user.type(screen.getByLabelText('Password'), 'correct-horse-battery');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    const joinButton = await screen.findByRole('button', { name: 'Join Zion' });
+    expect(router.state.location.pathname).toBe('/accept-invite');
+    expect(router.state.location.search).toBe('?token=abc123');
+    await user.click(joinButton);
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/');
+    });
+    expect(hasAccepted()).toBe(true);
+    expect(await screen.findByRole('heading', { name: 'Overview' })).toBeVisible();
+  });
+
   it('accepts with one button when signed in', async () => {
     mockInvitation(buildInvitationPreviewFixture({ has_password: true }));
     const { calls, hasAccepted } = recordAccepts();

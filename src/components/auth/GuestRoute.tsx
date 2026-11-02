@@ -5,6 +5,15 @@ import { SessionStatusScreen } from '@/components/auth/SessionStatusScreen';
 import { getSafeRedirectPath } from '@/utils/safeRedirect';
 import { ROUTES } from '@/constants/routes';
 
+// A re-invited person has no active store until they join, so signing in on the way to an invite
+// must still take them back to it; any other redirect needs a store, so they go to the root.
+function getNoStoreRedirectPath(redirect: string | null): string {
+  const path = getSafeRedirectPath(redirect);
+  const isAcceptInvite =
+    path === ROUTES.ACCEPT_INVITE || path.startsWith(`${ROUTES.ACCEPT_INVITE}?`);
+  return isAcceptInvite ? path : ROUTES.ROOT;
+}
+
 export function GuestRoute() {
   const session = useSession();
   const [searchParams] = useSearchParams();
@@ -17,7 +26,7 @@ export function GuestRoute() {
     case 'anon':
       return <Outlet />;
     case 'no-store':
-      return <Navigate to={ROUTES.ROOT} replace />;
+      return <Navigate to={getNoStoreRedirectPath(searchParams.get('redirect'))} replace />;
     case 'authed':
       return <Navigate to={getSafeRedirectPath(searchParams.get('redirect'))} replace />;
   }

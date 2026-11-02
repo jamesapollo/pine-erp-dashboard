@@ -36,6 +36,25 @@ describe('Session', () => {
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeVisible();
   });
 
+  it('sends a user with no active membership from login to the root, not to another redirect', async () => {
+    respondWithUser(buildUserFixture({ memberships: [] }));
+    const { router } = customRenderAtRoute({ url: '/login?redirect=%2Forders%2F42' });
+
+    expect(await screen.findByText("You don't have access to a store yet")).toBeVisible();
+    expect(router.state.location.pathname).toBe('/');
+    expect(router.state.location.search).toBe('');
+  });
+
+  it('sends a user with no active membership from login back to an invite they are accepting', async () => {
+    respondWithUser(buildUserFixture({ memberships: [] }));
+    const { router } = customRenderAtRoute({
+      url: '/login?redirect=%2Faccept-invite%3Ftoken%3Dabc123',
+    });
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/accept-invite'));
+    expect(router.state.location.search).toBe('?token=abc123');
+  });
+
   it('shows a retry when the server cannot be reached', async () => {
     server.use(http.get(mockEndpoints.me, () => HttpResponse.error()));
     customRenderAtRoute({ url: '/' });
