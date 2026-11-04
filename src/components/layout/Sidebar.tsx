@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   Boxes,
+  Contact,
   LayoutDashboard,
   LogOut,
   MapPin,
@@ -37,6 +38,7 @@ export function Sidebar({
   const { signOut, isSigningOut, hasFailed } = useSignOut();
   const canViewOrders = permissions.includes('orders.view');
   const canViewStaff = permissions.includes('staff.view');
+  const canViewStore = permissions.includes('store.view');
   const pendingOrderCount = usePendingOrderCountQuery({ enabled: canViewOrders });
   const [primaryRole = ''] = roles;
   const roleLabel = primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1);
@@ -78,7 +80,7 @@ export function Sidebar({
             <SidebarLink to={ROUTES.STOCK} icon={Boxes} label="Stock" />
           </SidebarGroup>
         ) : null}
-        {canViewOrders || canViewStaff ? (
+        {canViewOrders || canViewStaff || canViewStore ? (
           <SidebarGroup label="Store">
             {canViewStaff ? (
               <>
@@ -88,6 +90,9 @@ export function Sidebar({
             ) : null}
             {canViewOrders ? (
               <SidebarLink to={ROUTES.DELIVERY_ZONES} icon={MapPin} label="Delivery zones" />
+            ) : null}
+            {canViewStore ? (
+              <SidebarLink to={ROUTES.CONTACT_DETAILS} icon={Contact} label="Contact details" />
             ) : null}
           </SidebarGroup>
         ) : null}

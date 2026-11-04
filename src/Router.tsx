@@ -22,6 +22,7 @@ import { DeliveriesPage } from '@/pages/sales/DeliveriesPage';
 import { DeliveryDetailRoute } from '@/pages/sales/DeliveryDetailRoute';
 import { OrdersPage } from '@/pages/sales/OrdersPage';
 import { StockPage } from '@/pages/inventory/StockPage';
+import { ContactDetailsPage } from '@/pages/store/ContactDetailsPage';
 import { DeliveryZonesPage } from '@/pages/store/DeliveryZonesPage';
 import { StockVariantRoute } from '@/pages/inventory/StockVariantRoute';
 import { RoleDetailRoute } from '@/pages/staff/RoleDetailRoute';
@@ -170,6 +171,21 @@ export const routes: RouteObject[] = [
                       crumbs: stockCrumbs,
                       trailingCrumb: 'stockVariantName',
                     } satisfies RouteHandle,
+                  },
+                ],
+              },
+              {
+                element: (
+                  <RequirePermission
+                    slug="store.view"
+                    message="You don't have access to contact details."
+                  />
+                ),
+                children: [
+                  {
+                    path: ROUTES.CONTACT_DETAILS,
+                    element: <ContactDetailsPage />,
+                    handle: { crumbs: ['Store', 'Contact details'] } satisfies RouteHandle,
                   },
                 ],
               },

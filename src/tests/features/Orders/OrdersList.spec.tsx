@@ -349,6 +349,7 @@ describe('Sales navigation', () => {
       'Staff',
       'Roles',
       'Delivery zones',
+      'Contact details',
     ]);
   });
 

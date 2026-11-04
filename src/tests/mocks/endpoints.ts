@@ -49,6 +49,7 @@ export const mockEndpoints = {
   couriers: `${store}/couriers`,
   deliveryZones: `${store}/delivery-zones`,
   deliveryZone: `${store}/delivery-zones/:zoneId`,
+  contactDetails: `${store}/contact-details`,
   staff: `${store}/staff`,
   staffMember: `${store}/staff/:memberId`,
   staffInvitations: `${store}/staff/invitations`,

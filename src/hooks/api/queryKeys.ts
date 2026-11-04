@@ -73,6 +73,7 @@ export const queryKeys = {
     [...deliveries(storeId), 'detail', deliveryId] as const,
   couriers: (storeId: number) => ['stores', storeId, 'couriers'] as const,
   deliveryZones: (storeId: number) => ['stores', storeId, 'delivery-zones'] as const,
+  contactDetails: (storeId: number) => ['stores', storeId, 'contact-details'] as const,
   staff,
   staffMember: (storeId: number, memberId: number) =>
     [...staff(storeId), 'detail', memberId] as const,

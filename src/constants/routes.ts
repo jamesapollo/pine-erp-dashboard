@@ -15,6 +15,7 @@ export const ROUTES = {
   STOCK: '/inventory',
   STOCK_VARIANT: '/inventory/:variantId',
   DELIVERY_ZONES: '/delivery-zones',
+  CONTACT_DETAILS: '/contact-details',
   STAFF: '/staff',
   STAFF_MEMBER: '/staff/:memberId',
   ROLES: '/roles',
