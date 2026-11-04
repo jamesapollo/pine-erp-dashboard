@@ -1,16 +1,10 @@
 import { Link, useNavigate } from 'react-router-dom';
 
-import { type Enquiry, type EnquiryStatus } from '@/types/enquiry';
-import { Badge, type BadgeTone } from '@/components/ui/Badge';
+import { type Enquiry } from '@/types/enquiry';
 import { DataTable } from '@/components/ui/DataTable';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { formatMovementTime } from '@/utils/movementTime';
 import { messageDetailPath } from '@/constants/routes';
-
-const STATUS_BADGES: Record<EnquiryStatus, [BadgeTone, string]> = {
-  new: ['primary', 'New'],
-  replied: ['success', 'Replied'],
-  closed: ['neutral', 'Closed'],
-};
 
 function firstLine(message: string): string {
   return message.trim().split(/\r?\n/, 1)[0] ?? '';
@@ -71,14 +65,7 @@ export function EnquiriesTable({
         {
           key: 'status',
           header: 'Status',
-          render: (enquiry) => {
-            const [tone, label] = STATUS_BADGES[enquiry.status];
-            return (
-              <Badge tone={tone} size="sm" dot>
-                {label}
-              </Badge>
-            );
-          },
+          render: (enquiry) => <StatusBadge kind="enquiry" status={enquiry.status} size="sm" />,
         },
         {
           key: 'created_at',

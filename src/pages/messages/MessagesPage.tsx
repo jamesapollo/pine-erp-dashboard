@@ -92,6 +92,7 @@ export function MessagesPage() {
             size="sm"
             placeholder="Name, email or message"
             className="w-[260px]"
+            maxLength={100}
             value={searchText}
             onChange={(event) => setSearch(event.target.value)}
           />

@@ -121,6 +121,16 @@ describe('Messages list', () => {
     expect(listRequests(requests)[0]?.get('status')).toBe('new');
   });
 
+  it('limits the search box to the 100 characters the server accepts', async () => {
+    respondWithEnquiries([buildEnquiryFixture()]);
+    customRenderAtRoute({ url: '/messages' });
+
+    expect(await screen.findByRole('textbox', { name: 'Search messages' })).toHaveAttribute(
+      'maxlength',
+      '100',
+    );
+  });
+
   it('searches after typing stops', async () => {
     const requests = respondWithEnquiries([buildEnquiryFixture()]);
     const { router } = customRenderAtRoute({ url: '/messages' });
