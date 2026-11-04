@@ -1,12 +1,11 @@
 import { useEffect } from 'react';
 import { Search } from 'lucide-react';
 
-import { type EnquiryStatus } from '@/types/enquiry';
 import {
   ENQUIRIES_PER_PAGE,
   useEnquiriesQuery,
 } from '@/hooks/api/queries/enquiries/useEnquiriesQuery';
-import { useEnquiryListFilters } from '@/hooks/useEnquiryListFilters';
+import { useEnquiryListFilters, type EnquiryTab } from '@/hooks/useEnquiryListFilters';
 import { EnquiriesTable } from '@/components/messages/EnquiriesTable';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
@@ -20,10 +19,10 @@ import { Tabs } from '@/components/ui/Tabs';
 import { isStatus } from '@/utils/apiErrors';
 
 export function MessagesPage() {
-  const { filters, searchText, setStatus, setSearch, setPage } = useEnquiryListFilters();
+  const { filters, tab, searchText, setTab, setSearch, setPage } = useEnquiryListFilters();
   const enquiriesQuery = useEnquiriesQuery(filters);
 
-  const hasFilters = Boolean(filters.status || filters.search);
+  const hasFilters = tab !== 'all' || Boolean(filters.search);
   const page = filters.page ?? 1;
 
   const enquiriesData = enquiriesQuery.data;
@@ -75,8 +74,8 @@ export function MessagesPage() {
         <div className="px-5">
           <Tabs
             label="Message status"
-            value={filters.status ?? 'all'}
-            onChange={(value) => setStatus(value === 'all' ? undefined : (value as EnquiryStatus))}
+            value={tab}
+            onChange={(value) => setTab(value as EnquiryTab)}
             items={[
               { value: 'new', label: 'New' },
               { value: 'replied', label: 'Replied' },

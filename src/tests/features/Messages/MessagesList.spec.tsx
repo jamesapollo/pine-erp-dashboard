@@ -76,28 +76,49 @@ describe('Messages list', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/messages/7'));
   });
 
+  it('opens on the New tab and asks the API for new messages', async () => {
+    const requests = respondWithEnquiries([buildEnquiryFixture()]);
+    const { router } = customRenderAtRoute({ url: '/messages' });
+    await screen.findByRole('link', { name: 'Amina Hassan' });
+
+    expect(screen.getByRole('tab', { name: 'New' })).toHaveAttribute('aria-selected', 'true');
+    expect(listRequests(requests)[0]?.get('status')).toBe('new');
+    expect(router.state.location.search).toBe('');
+  });
+
   it('sets the status from the New, Replied, Closed and All tabs', async () => {
     const requests = respondWithEnquiries([buildEnquiryFixture()]);
     const { router } = customRenderAtRoute({ url: '/messages' });
     await screen.findByRole('link', { name: 'Amina Hassan' });
 
     for (const [tab, status] of [
-      ['New', 'new'],
       ['Replied', 'replied'],
       ['Closed', 'closed'],
+      ['New', 'new'],
     ] as const) {
       await userEvent.click(screen.getByRole('tab', { name: tab }));
+      await waitFor(() => expect(router.state.location.search).toBe(`?status=${status}`));
       await waitFor(() =>
         expect(listRequests(requests).some((params) => params.get('status') === status)).toBe(true),
       );
-      expect(router.state.location.search).toBe(`?status=${status}`);
     }
 
     await userEvent.click(screen.getByRole('tab', { name: 'All' }));
-    await waitFor(() => expect(router.state.location.search).toBe(''));
+    await waitFor(() => expect(router.state.location.search).toBe('?status=all'));
     expect(screen.getByRole('tab', { name: 'All' })).toHaveAttribute('aria-selected', 'true');
-    // The unfiltered list is already cached from the first load, so no status is ever sent for it.
-    expect(listRequests(requests)[0]?.has('status')).toBe(false);
+    await waitFor(() =>
+      expect(listRequests(requests).some((params) => !params.has('status'))).toBe(true),
+    );
+    expect(listRequests(requests).some((params) => params.get('status') === 'all')).toBe(false);
+  });
+
+  it('treats an unknown status in the URL as New', async () => {
+    const requests = respondWithEnquiries([buildEnquiryFixture()]);
+    customRenderAtRoute({ url: '/messages?status=bogus' });
+    await screen.findByRole('link', { name: 'Amina Hassan' });
+
+    expect(screen.getByRole('tab', { name: 'New' })).toHaveAttribute('aria-selected', 'true');
+    expect(listRequests(requests)[0]?.get('status')).toBe('new');
   });
 
   it('searches after typing stops', async () => {
@@ -141,7 +162,7 @@ describe('Messages list', () => {
 
   it('shows "No messages yet" on the unfiltered list', async () => {
     respondWithEnquiries([]);
-    customRenderAtRoute({ url: '/messages' });
+    customRenderAtRoute({ url: '/messages?status=all' });
 
     expect(await screen.findByText(/^No messages yet/)).toBeVisible();
   });
@@ -186,6 +207,10 @@ describe('Messages navigation', () => {
 
     await userEvent.click(link);
     await waitFor(() => expect(router.state.location.pathname).toBe('/messages'));
+    expect(await screen.findByRole('tab', { name: 'New' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
   });
 
   it('shows no count when there are no new messages', async () => {

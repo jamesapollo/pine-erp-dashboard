@@ -7,6 +7,8 @@ import { type EnquiryListFilters } from '@/hooks/api/queryKeys';
 const SEARCH_DEBOUNCE_MILLISECONDS = 300;
 const ENQUIRY_STATUSES: EnquiryStatus[] = ['new', 'replied', 'closed'];
 
+export type EnquiryTab = EnquiryStatus | 'all';
+
 function parsePositiveInteger(value: string | null): number | undefined {
   if (!value || !/^\d+$/.test(value)) return undefined;
   const parsed = Number.parseInt(value, 10);
@@ -26,7 +28,13 @@ export function useEnquiryListFilters() {
   }
 
   const statusParam = searchParams.get('status');
-  const status = ENQUIRY_STATUSES.find((candidate) => candidate === statusParam);
+  // No (or an unknown) status in the URL means New. The All tab is an explicit status=all and
+  // sends no status to the API.
+  const tab: EnquiryTab =
+    statusParam === 'all'
+      ? 'all'
+      : (ENQUIRY_STATUSES.find((candidate) => candidate === statusParam) ?? 'new');
+  const status = tab === 'all' ? undefined : tab;
   const page = parsePositiveInteger(searchParams.get('page'));
 
   const filters: EnquiryListFilters = useMemo(
@@ -64,8 +72,9 @@ export function useEnquiryListFilters() {
 
   return {
     filters,
+    tab,
     searchText,
-    setStatus: (nextStatus?: EnquiryStatus) => updateParams({ status: nextStatus }),
+    setTab: (nextTab: EnquiryTab) => updateParams({ status: nextTab }),
     setSearch: setSearchText,
     setPage: (nextPage: number, shouldReplace = false) => {
       setSearchParams(

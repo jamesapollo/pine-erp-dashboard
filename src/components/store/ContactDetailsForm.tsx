@@ -108,7 +108,7 @@ export function ContactDetailsForm({
             type="email"
             autoComplete="off"
             disabled={disabled}
-            hint="Also where enquiry replies are sent from."
+            hint="Customers' answers to your replies go here."
             error={errors.email?.message}
             {...register('email')}
           />
