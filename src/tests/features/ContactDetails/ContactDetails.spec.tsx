@@ -205,10 +205,12 @@ describe('Contact details', () => {
 
     const email = screen.getByLabelText('Email');
     await waitFor(() => expect(email).toHaveAccessibleDescription(/must be a valid email/));
+    // The server message also shows in the form-level alert, beside the field's own error.
+    expect(screen.getAllByText('The email field must be a valid email address.')).toHaveLength(2);
     expect(screen.getByLabelText('City')).toHaveValue('Mombasa');
   });
 
-  it('shows the server message on a 403 and keeps the input', async () => {
+  it('shows the permission message on a 403 and keeps the input', async () => {
     respondWith();
     recordSaves(403, { message: 'This action is unauthorized.' });
     await openPage();

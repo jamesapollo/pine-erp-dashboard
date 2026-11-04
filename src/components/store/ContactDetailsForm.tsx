@@ -58,7 +58,6 @@ export function ContactDetailsForm({
   const values = useWatch({ control });
   const preview = formatContactPreview(values as ContactDetailsInput);
   const disabled = !canManage;
-  const hasFieldError = getServerFieldErrors(updateMutation.error).length > 0;
 
   const onSubmit = handleSubmit((input) => {
     updateMutation.mutate(toContactDetailsBody(input), {
@@ -71,7 +70,7 @@ export function ContactDetailsForm({
 
   return (
     <form noValidate onSubmit={onSubmit} className="flex max-w-[720px] flex-col gap-4">
-      {updateMutation.isError && !hasFieldError ? (
+      {updateMutation.isError ? (
         <Alert tone="danger">{getActionErrorMessage(updateMutation.error)}</Alert>
       ) : null}
       <Card title="Contact" subtitle="How customers reach the store.">
