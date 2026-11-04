@@ -183,6 +183,13 @@ describe('Contact details', () => {
     expect(bodies[0]?.enquiry_topics).toEqual(['General', 'Returns', 'Press']);
   });
 
+  it('explains that the email receives customers\' answers', async () => {
+    respondWith();
+    await openPage();
+
+    expect(screen.getByText("Customers' answers to your replies go here.")).toBeVisible();
+  });
+
   it('refuses a duplicate topic, ignoring case', async () => {
     respondWith();
     await openPage();
