@@ -126,6 +126,33 @@ describe('Message detail', () => {
     expect(writes).toEqual([{ method: 'RESEND', body: null }]);
   });
 
+  it('updates a Sending reply to Sent without a reload', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const detail = buildEnquiryDetailFixture({
+        status: 'replied',
+        replies: [buildEnquiryReplyFixture({ id: 1, mail_status: 'queued' })],
+      });
+      serveEnquiry(detail);
+      customRenderAtRoute({ url: '/messages/7' });
+      expect(await screen.findByText('Sending')).toBeVisible();
+
+      server.use(
+        http.get(mockEndpoints.enquiry, () =>
+          HttpResponse.json({
+            data: { ...detail, replies: [{ ...detail.replies[0], mail_status: 'sent' }] },
+          }),
+        ),
+      );
+      await vi.advanceTimersByTimeAsync(5_100);
+
+      expect(await screen.findByText('Sent')).toBeVisible();
+      expect(screen.queryByText('Sending')).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('has no Resend button when every reply was delivered', async () => {
     serveEnquiry(
       buildEnquiryDetailFixture({

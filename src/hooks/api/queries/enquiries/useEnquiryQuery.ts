@@ -20,6 +20,8 @@ export function enquiryQueryOptions(storeId: number, enquiryId: number) {
   });
 }
 
+const QUEUED_REPLY_REFETCH_INTERVAL_MILLISECONDS = 5_000;
+
 // A non-positive or non-integer id (such as NaN from a bad URL) never sends a request.
 export function useEnquiryQuery(enquiryId: number) {
   const { store } = useAuthedSession();
@@ -28,5 +30,10 @@ export function useEnquiryQuery(enquiryId: number) {
     enabled: Number.isInteger(enquiryId) && enquiryId > 0,
     refetchOnWindowFocus: 'always',
     refetchOnMount: 'always',
+    // While a reply's email is still being sent, check again so it flips to Sent or Not delivered.
+    refetchInterval: (query) =>
+      query.state.data?.replies.some((reply) => reply.mail_status === 'queued')
+        ? QUEUED_REPLY_REFETCH_INTERVAL_MILLISECONDS
+        : false,
   });
 }
