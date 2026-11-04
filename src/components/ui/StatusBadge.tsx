@@ -53,6 +53,17 @@ const STATUS_MAP = {
     low: ['warning', 'Low stock'],
     out: ['danger', 'Out of stock'],
   },
+  enquiry: {
+    new: ['primary', 'New'],
+    replied: ['success', 'Replied'],
+    closed: ['neutral', 'Closed'],
+  },
+  // Whether a reply's email has reached the shopper.
+  reply: {
+    sent: ['success', 'Sent'],
+    queued: ['info', 'Sending'],
+    failed: ['danger', 'Not delivered'],
+  },
   payment: {
     unpaid: ['warning', 'Unpaid'],
     arranged: ['info', 'Arranged offline'],

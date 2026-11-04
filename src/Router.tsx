@@ -20,6 +20,7 @@ import { ProductsPage } from '@/pages/products/ProductsPage';
 import { OrderDetailRoute } from '@/pages/sales/OrderDetailRoute';
 import { DeliveriesPage } from '@/pages/sales/DeliveriesPage';
 import { DeliveryDetailRoute } from '@/pages/sales/DeliveryDetailRoute';
+import { MessageDetailRoute } from '@/pages/messages/MessageDetailRoute';
 import { MessagesPage } from '@/pages/messages/MessagesPage';
 import { OrdersPage } from '@/pages/sales/OrdersPage';
 import { StockPage } from '@/pages/inventory/StockPage';
@@ -116,6 +117,11 @@ export const routes: RouteObject[] = [
                     path: ROUTES.MESSAGES,
                     element: <MessagesPage />,
                     handle: { crumbs: ['Messages'] } satisfies RouteHandle,
+                  },
+                  {
+                    path: ROUTES.MESSAGE_DETAIL,
+                    element: <MessageDetailRoute />,
+                    handle: { crumbs: ['Messages', 'Message'] } satisfies RouteHandle,
                   },
                 ],
               },
