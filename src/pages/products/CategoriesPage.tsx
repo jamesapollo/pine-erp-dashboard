@@ -4,6 +4,7 @@ import { Plus, Tags } from 'lucide-react';
 import { useCategoriesQuery } from '@/hooks/api/queries/catalogue/useCategoriesQuery';
 import { useAuthedSession } from '@/hooks/useAuthedSession';
 import { AddCategoryDialog } from '@/components/products/AddCategoryDialog';
+import { CategoryNavPanel } from '@/components/products/CategoryNavPanel';
 import { CategoryEditor } from '@/components/products/CategoryEditor';
 import { Alert } from '@/components/ui/Alert';
 import { BackLink } from '@/components/ui/BackLink';
@@ -41,49 +42,52 @@ export function CategoriesPage() {
     );
   } else {
     content = (
-      <div className="flex flex-wrap items-start gap-4">
-        <Card flush className="min-w-0 max-w-[340px] flex-[1_1_260px]">
-          {rows.length === 0 ? null : (
-            <ul aria-label="Categories" className="m-0 flex list-none flex-col p-1.5">
-              {rows.map(({ category, depth }) => (
-                <li key={category.id}>
-                  <button
-                    type="button"
-                    aria-current={category.id === selected?.category.id ? 'true' : undefined}
-                    onClick={() => setSelectedId(category.id)}
-                    className={cn(
-                      'flex w-full cursor-pointer items-center rounded-control border-0 px-3 py-2.5 text-left text-sm font-medium text-text-primary focus-visible:shadow-focus focus-visible:outline-none',
-                      category.id === selected?.category.id
-                        ? 'bg-surface-selected'
-                        : 'bg-transparent hover:bg-surface-hover',
-                    )}
-                  >
-                    {indentCategoryLabel(category.name, depth)}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-        <div className="min-w-0 flex-[2_1_480px]">
-          {selected ? (
-            <CategoryEditor
-              key={selected.category.id}
-              category={selected.category}
-              tree={tree}
-              canManage={canManage}
-            />
-          ) : (
-            <Card>
-              <EmptyState
-                icon={Tags}
-                title="No categories"
-                description="Add one, such as Dresses, so products can be filed under it."
+      <>
+        {canManage ? <CategoryNavPanel categories={tree} /> : null}
+        <div className="flex flex-wrap items-start gap-4">
+          <Card flush className="min-w-0 max-w-[340px] flex-[1_1_260px]">
+            {rows.length === 0 ? null : (
+              <ul aria-label="Categories" className="m-0 flex list-none flex-col p-1.5">
+                {rows.map(({ category, depth }) => (
+                  <li key={category.id}>
+                    <button
+                      type="button"
+                      aria-current={category.id === selected?.category.id ? 'true' : undefined}
+                      onClick={() => setSelectedId(category.id)}
+                      className={cn(
+                        'flex w-full cursor-pointer items-center rounded-control border-0 px-3 py-2.5 text-left text-sm font-medium text-text-primary focus-visible:shadow-focus focus-visible:outline-none',
+                        category.id === selected?.category.id
+                          ? 'bg-surface-selected'
+                          : 'bg-transparent hover:bg-surface-hover',
+                      )}
+                    >
+                      {indentCategoryLabel(category.name, depth)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+          <div className="min-w-0 flex-[2_1_480px]">
+            {selected ? (
+              <CategoryEditor
+                key={selected.category.id}
+                category={selected.category}
+                tree={tree}
+                canManage={canManage}
               />
-            </Card>
-          )}
+            ) : (
+              <Card>
+                <EmptyState
+                  icon={Tags}
+                  title="No categories"
+                  description="Add one, such as Dresses, so products can be filed under it."
+                />
+              </Card>
+            )}
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 

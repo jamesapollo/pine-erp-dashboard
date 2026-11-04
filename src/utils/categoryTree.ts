@@ -34,3 +34,9 @@ export function getDescendantIds(tree: Category[], categoryId: number): number[]
 export function indentCategoryLabel(name: string, depth: number): string {
   return `${'  '.repeat(depth)}${name}`;
 }
+
+// Special categories (New In, On Sale) are filled automatically, so they hold no products and can't
+// be assigned or filtered by.
+export function flattenStandardCategories(tree: Category[]) {
+  return flattenCategoryTree(tree).filter(({ category }) => category.kind === 'standard');
+}

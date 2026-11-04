@@ -24,7 +24,11 @@ import { Select } from '@/components/ui/Select';
 import { Spinner } from '@/components/ui/Spinner';
 import { Tabs } from '@/components/ui/Tabs';
 import { isStatus } from '@/utils/apiErrors';
-import { flattenCategoryTree, indentCategoryLabel } from '@/utils/categoryTree';
+import {
+  flattenCategoryTree,
+  flattenStandardCategories,
+  indentCategoryLabel,
+} from '@/utils/categoryTree';
 import { ROUTES } from '@/constants/routes';
 
 export function ProductsPage() {
@@ -138,7 +142,7 @@ export function ProductsPage() {
             onChange={(event) =>
               setCategory(event.target.value ? Number(event.target.value) : undefined)
             }
-            options={flattenCategoryTree(categories).map(({ category, depth }) => ({
+            options={flattenStandardCategories(categories).map(({ category, depth }) => ({
               value: String(category.id),
               label: indentCategoryLabel(category.name, depth),
             }))}

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { flattenCategoryTree, indentCategoryLabel } from '@/utils/categoryTree';
+import { flattenStandardCategories, indentCategoryLabel } from '@/utils/categoryTree';
 
 export function AddCategoryDialog({
   isOpen,
@@ -39,7 +39,7 @@ export function AddCategoryDialog({
     );
   }
 
-  const parentOptions = flattenCategoryTree(tree).map(({ category, depth }) => ({
+  const parentOptions = flattenStandardCategories(tree).map(({ category, depth }) => ({
     value: String(category.id),
     label: indentCategoryLabel(category.name, depth),
   }));

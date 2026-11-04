@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { type ProductDetailInput } from '@/components/products/productDetailSchema';
-import { flattenCategoryTree, indentCategoryLabel } from '@/utils/categoryTree';
+import { flattenStandardCategories, indentCategoryLabel } from '@/utils/categoryTree';
 
 export function ProductDetailsCard({
   categories,
@@ -20,7 +20,7 @@ export function ProductDetailsCard({
     formState: { errors },
   } = useFormContext<ProductDetailInput>();
 
-  const categoryOptions = flattenCategoryTree(categories).map(({ category, depth }) => ({
+  const categoryOptions = flattenStandardCategories(categories).map(({ category, depth }) => ({
     value: String(category.id),
     label: indentCategoryLabel(category.name, depth),
   }));

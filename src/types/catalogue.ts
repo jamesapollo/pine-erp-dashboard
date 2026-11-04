@@ -61,6 +61,7 @@ export type OptionType = {
   values: OptionValue[];
   products_count: number;
 };
+export type CategoryKind = 'standard' | 'new_in' | 'on_sale';
 export type Category = {
   id: number;
   parent_id: number | null;
@@ -68,6 +69,9 @@ export type Category = {
   slug: string;
   sort_order: number;
   is_visible: boolean;
+  kind: CategoryKind;
+  show_in_nav: boolean;
+  nav_order: number | null;
   children?: Category[];
 };
 export type StockMovementType = 'receipt' | 'adjustment' | 'sale' | 'return';

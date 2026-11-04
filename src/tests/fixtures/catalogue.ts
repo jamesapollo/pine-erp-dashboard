@@ -116,6 +116,9 @@ export function buildCategoryFixture(overrides: Partial<Category> = {}): Categor
     slug: 'dresses',
     sort_order: 0,
     is_visible: true,
+    kind: 'standard',
+    show_in_nav: false,
+    nav_order: null,
     ...overrides,
   };
 }

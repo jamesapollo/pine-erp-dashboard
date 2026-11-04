@@ -23,7 +23,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { StatCard } from '@/components/ui/StatCard';
 import { Tabs } from '@/components/ui/Tabs';
 import { isStatus } from '@/utils/apiErrors';
-import { flattenCategoryTree, indentCategoryLabel } from '@/utils/categoryTree';
+import { flattenStandardCategories, indentCategoryLabel } from '@/utils/categoryTree';
 
 function formatCount(value: number | undefined): string {
   return value === undefined ? '—' : value.toLocaleString('en-KE');
@@ -38,10 +38,12 @@ function CategoryFilter({
   onChange: (categoryId?: number) => void;
 }) {
   const categoriesQuery = useCategoriesQuery();
-  const options = flattenCategoryTree(categoriesQuery.data ?? []).map(({ category, depth }) => ({
-    value: String(category.id),
-    label: indentCategoryLabel(category.name, depth),
-  }));
+  const options = flattenStandardCategories(categoriesQuery.data ?? []).map(
+    ({ category, depth }) => ({
+      value: String(category.id),
+      label: indentCategoryLabel(category.name, depth),
+    }),
+  );
 
   return (
     <Select

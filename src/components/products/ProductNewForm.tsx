@@ -40,7 +40,7 @@ import {
 import { PublishChecklist } from '@/components/products/PublishChecklist';
 import { UnsavedChangesDialog } from '@/components/products/UnsavedChangesDialog';
 import { getActionErrorMessage, getFieldError, isStatus } from '@/utils/apiErrors';
-import { flattenCategoryTree, indentCategoryLabel } from '@/utils/categoryTree';
+import { flattenStandardCategories, indentCategoryLabel } from '@/utils/categoryTree';
 import { buildVariantCombinations } from '@/utils/variantCombinations';
 import { ROUTES } from '@/constants/routes';
 
@@ -140,7 +140,7 @@ export function ProductNewForm() {
   const hasTooManyVariants = combinations.length > MAXIMUM_VARIANT_ROWS;
   const hasNoVariants = combinations.length === 0;
 
-  const categoryOptions = flattenCategoryTree(categoriesQuery.data ?? []).map(
+  const categoryOptions = flattenStandardCategories(categoriesQuery.data ?? []).map(
     ({ category, depth }) => ({
       value: String(category.id),
       label: indentCategoryLabel(category.name, depth),

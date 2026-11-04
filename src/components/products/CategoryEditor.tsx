@@ -4,6 +4,7 @@ import { Trash2 } from 'lucide-react';
 import { type Category } from '@/types/catalogue';
 import { useDeleteCategoryMutation } from '@/hooks/api/mutations/catalogue/useDeleteCategoryMutation';
 import { useUpdateCategoryMutation } from '@/hooks/api/mutations/catalogue/useUpdateCategoryMutation';
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Dialog } from '@/components/ui/Dialog';
@@ -11,7 +12,11 @@ import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Switch } from '@/components/ui/Switch';
-import { flattenCategoryTree, getDescendantIds, indentCategoryLabel } from '@/utils/categoryTree';
+import {
+  flattenStandardCategories,
+  getDescendantIds,
+  indentCategoryLabel,
+} from '@/utils/categoryTree';
 
 export function CategoryEditor({
   category,
@@ -22,6 +27,7 @@ export function CategoryEditor({
   tree: Category[];
   canManage: boolean;
 }) {
+  const isSpecial = category.kind !== 'standard';
   const [name, setName] = useState(category.name);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const submittedName = useRef(category.name);
@@ -29,7 +35,7 @@ export function CategoryEditor({
   const deleteMutation = useDeleteCategoryMutation();
 
   const excludedIds = new Set([category.id, ...getDescendantIds(tree, category.id)]);
-  const parentOptions = flattenCategoryTree(tree)
+  const parentOptions = flattenStandardCategories(tree)
     .filter(({ category: candidate }) => !excludedIds.has(candidate.id))
     .map(({ category: candidate, depth }) => ({
       value: String(candidate.id),
@@ -59,9 +65,19 @@ export function CategoryEditor({
     <>
       <Card
         title={category.name}
-        subtitle={category.parent_id === null ? 'Top-level category' : 'Subcategory'}
+        subtitle={
+          isSpecial ? (
+            <Badge tone="info">
+              {category.kind === 'new_in' ? 'Automatic — New In' : 'Automatic — Sale'}
+            </Badge>
+          ) : category.parent_id === null ? (
+            'Top-level category'
+          ) : (
+            'Subcategory'
+          )
+        }
         actions={
-          canManage ? (
+          canManage && !isSpecial ? (
             <Button size="sm" variant="ghost" onClick={() => setIsConfirmingDelete(true)}>
               <Icon icon={Trash2} size={14} />
               Delete category
@@ -82,19 +98,21 @@ export function CategoryEditor({
               commitName();
             }}
           />
-          <Select
-            label="Parent"
-            placeholder="None"
-            options={parentOptions}
-            value={category.parent_id === null ? '' : String(category.parent_id)}
-            disabled={!canManage}
-            onChange={(event) =>
-              updateMutation.mutate({
-                categoryId: category.id,
-                parent_id: event.target.value === '' ? null : Number(event.target.value),
-              })
-            }
-          />
+          {isSpecial ? null : (
+            <Select
+              label="Parent"
+              placeholder="None"
+              options={parentOptions}
+              value={category.parent_id === null ? '' : String(category.parent_id)}
+              disabled={!canManage}
+              onChange={(event) =>
+                updateMutation.mutate({
+                  categoryId: category.id,
+                  parent_id: event.target.value === '' ? null : Number(event.target.value),
+                })
+              }
+            />
+          )}
           <Switch
             label="Visible on storefront"
             checked={category.is_visible}
