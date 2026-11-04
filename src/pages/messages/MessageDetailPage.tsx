@@ -21,7 +21,7 @@ import { getActionErrorMessage, isStatus } from '@/utils/apiErrors';
 import { formatDateTime } from '@/utils/movementTime';
 import { ROUTES } from '@/constants/routes';
 
-const CONFLICT_MESSAGE = 'This message changed — refresh to see the latest';
+const CONFLICT_MESSAGE = 'This message changed — showing the latest.';
 
 function MessageDetailContent({ enquiry }: { enquiry: EnquiryDetail }) {
   const { hasPermission } = useAuthedSession();
@@ -30,6 +30,7 @@ function MessageDetailContent({ enquiry }: { enquiry: EnquiryDetail }) {
   const resendMutation = useResendEnquiryReplyMutation(enquiry.id);
   const isClosed = enquiry.status === 'closed';
 
+  // Starting an action clears the other one's error, so only the latest action's error shows.
   const actionError = statusMutation.error ?? resendMutation.error;
 
   return (
@@ -54,7 +55,10 @@ function MessageDetailContent({ enquiry }: { enquiry: EnquiryDetail }) {
               <Button
                 variant="secondary"
                 disabled={statusMutation.isPending}
-                onClick={() => statusMutation.mutate({ status: isClosed ? 'new' : 'closed' })}
+                onClick={() => {
+                  resendMutation.reset();
+                  statusMutation.mutate({ status: isClosed ? 'new' : 'closed' });
+                }}
               >
                 {isClosed ? 'Reopen' : 'Close'}
               </Button>
@@ -79,7 +83,10 @@ function MessageDetailContent({ enquiry }: { enquiry: EnquiryDetail }) {
           replies={enquiry.replies}
           canManage={canManage}
           resendingReplyId={resendMutation.isPending ? resendMutation.variables : undefined}
-          onResend={(replyId) => resendMutation.mutate(replyId)}
+          onResend={(replyId) => {
+            statusMutation.reset();
+            resendMutation.mutate(replyId);
+          }}
         />
         {canManage ? (
           <Card title={isClosed ? 'Reply and reopen' : 'Reply'}>

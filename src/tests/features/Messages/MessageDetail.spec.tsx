@@ -244,9 +244,51 @@ describe('Message detail', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Close' }));
 
-    expect(
-      await screen.findByText('This message changed — refresh to see the latest'),
-    ).toBeVisible();
+    expect(await screen.findByText('This message changed — showing the latest.')).toBeVisible();
+  });
+
+  it('says the message changed when a resend gets a 409', async () => {
+    serveEnquiry(
+      buildEnquiryDetailFixture({
+        status: 'replied',
+        replies: [buildEnquiryReplyFixture({ id: 1, mail_status: 'failed' })],
+      }),
+    );
+    server.use(
+      http.post(resendUrl, () =>
+        HttpResponse.json({ message: 'Not failed any more.' }, { status: 409 }),
+      ),
+    );
+    const user = userEvent.setup();
+    customRenderAtRoute({ url: '/messages/7' });
+
+    await user.click(await screen.findByRole('button', { name: /^Resend/ }));
+
+    expect(await screen.findByText('This message changed — showing the latest.')).toBeVisible();
+  });
+
+  it('drops an earlier action error when a later action succeeds', async () => {
+    serveEnquiry(
+      buildEnquiryDetailFixture({
+        status: 'replied',
+        replies: [buildEnquiryReplyFixture({ id: 1, mail_status: 'failed' })],
+      }),
+    );
+    server.use(
+      http.patch(mockEndpoints.enquiry, () =>
+        HttpResponse.json({ message: 'Could not close.' }, { status: 500 }),
+      ),
+    );
+    const user = userEvent.setup();
+    customRenderAtRoute({ url: '/messages/7' });
+
+    await user.click(await screen.findByRole('button', { name: 'Close' }));
+    expect(await screen.findByRole('alert')).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: /^Resend/ }));
+
+    expect(await screen.findByText('Sending')).toBeVisible();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('hides reply, close and resend without enquiries.manage', async () => {
