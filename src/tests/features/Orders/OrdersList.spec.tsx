@@ -332,7 +332,7 @@ describe('Sales navigation', () => {
     expect(await within(navigation).findByRole('link', { name: 'Orders' })).toBeVisible();
   });
 
-  it('places Sales between Overview and Catalogue', async () => {
+  it('places Sales between Overview and Messages', async () => {
     respondWithOrders([]);
     customRenderAtRoute({ url: '/' });
 
@@ -344,6 +344,7 @@ describe('Sales navigation', () => {
       'Overview',
       'Orders',
       'Deliveries',
+      'Messages',
       'Products',
       'Stock',
       'Staff',

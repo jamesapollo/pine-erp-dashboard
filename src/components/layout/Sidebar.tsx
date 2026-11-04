@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
   Boxes,
   Contact,
+  Inbox,
   LayoutDashboard,
   LogOut,
   MapPin,
@@ -16,6 +17,7 @@ import {
 
 import { type StoreSummary, type User } from '@/types/session';
 import { usePendingOrderCountQuery } from '@/hooks/api/queries/sales/usePendingOrderCountQuery';
+import { useNewEnquiryCountQuery } from '@/hooks/api/queries/enquiries/useNewEnquiryCountQuery';
 import { useSignOut } from '@/hooks/useSignOut';
 import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';
@@ -40,6 +42,8 @@ export function Sidebar({
   const canViewStaff = permissions.includes('staff.view');
   const canViewStore = permissions.includes('store.view');
   const pendingOrderCount = usePendingOrderCountQuery({ enabled: canViewOrders });
+  const canViewEnquiries = permissions.includes('enquiries.view');
+  const newEnquiryCount = useNewEnquiryCountQuery({ enabled: canViewEnquiries });
   const [primaryRole = ''] = roles;
   const roleLabel = primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1);
 
@@ -68,6 +72,17 @@ export function Sidebar({
               countLabel={`${pendingOrderCount} pending`}
             />
             <SidebarLink to={ROUTES.DELIVERIES} icon={Truck} label="Deliveries" />
+          </SidebarGroup>
+        ) : null}
+        {canViewEnquiries ? (
+          <SidebarGroup label="Messages">
+            <SidebarLink
+              to={ROUTES.MESSAGES}
+              icon={Inbox}
+              label="Messages"
+              count={newEnquiryCount}
+              countLabel={`${newEnquiryCount} new`}
+            />
           </SidebarGroup>
         ) : null}
         {permissions.includes('catalogue.view') ? (

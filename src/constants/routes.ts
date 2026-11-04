@@ -15,6 +15,8 @@ export const ROUTES = {
   STOCK: '/inventory',
   STOCK_VARIANT: '/inventory/:variantId',
   DELIVERY_ZONES: '/delivery-zones',
+  MESSAGES: '/messages',
+  MESSAGE_DETAIL: '/messages/:enquiryId',
   CONTACT_DETAILS: '/contact-details',
   STAFF: '/staff',
   STAFF_MEMBER: '/staff/:memberId',
@@ -46,4 +48,8 @@ export function buildStaffMemberPath(memberId: number): string {
 
 export function buildRolePath(roleId: number): string {
   return `${ROUTES.ROLES}/${roleId}`;
+}
+
+export function messageDetailPath(enquiryId: number): string {
+  return `${ROUTES.MESSAGES}/${enquiryId}`;
 }

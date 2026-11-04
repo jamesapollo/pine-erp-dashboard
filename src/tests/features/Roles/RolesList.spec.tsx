@@ -70,8 +70,8 @@ describe('Roles list', () => {
 
     const table = await screen.findByRole('table', { name: 'Roles' });
     expect(within(table).getByText('All')).toBeVisible();
-    expect(within(table).getByText('6 of 9')).toBeVisible();
-    expect(within(table).getByText('0 of 9')).toBeVisible();
+    expect(within(table).getByText('6 of 11')).toBeVisible();
+    expect(within(table).getByText('0 of 11')).toBeVisible();
     expect(within(table).getAllByText('Built-in')).toHaveLength(2);
     expect(within(table).getByText('None')).toBeVisible();
     expect(within(table).getByText('Full access.')).toBeVisible();

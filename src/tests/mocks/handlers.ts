@@ -20,4 +20,5 @@ export const handlers = [
   http.get(mockEndpoints.roles, () => HttpResponse.json({ data: [] })),
   http.get(mockEndpoints.permissions, () => HttpResponse.json({ data: [] })),
   http.get(mockEndpoints.orders, () => HttpResponse.json(buildPaginated([]))),
+  http.get(mockEndpoints.enquiries, () => HttpResponse.json(buildPaginated([]))),
 ];

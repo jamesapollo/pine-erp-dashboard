@@ -1,3 +1,4 @@
+import { type EnquiryStatus } from '@/types/enquiry';
 import { type ProductStatus, type StockMovementType } from '@/types/catalogue';
 import { type DeliveryStatus, type OrderStatus } from '@/types/sales';
 
@@ -25,6 +26,13 @@ export type DeliveryListFilters = {
   perPage?: number;
 };
 
+export type EnquiryListFilters = {
+  status?: EnquiryStatus;
+  search?: string;
+  page?: number;
+  perPage?: number;
+};
+
 export type StockStatusFilter = 'low' | 'out';
 
 export type StockListFilters = {
@@ -40,6 +48,7 @@ const orders = (storeId: number) => ['stores', storeId, 'orders'] as const;
 const deliveries = (storeId: number) => ['stores', storeId, 'deliveries'] as const;
 const allStockMovements = (storeId: number) => ['stores', storeId, 'stock-movements'] as const;
 const stockLevels = (storeId: number) => ['stores', storeId, 'stock-levels'] as const;
+const enquiries = (storeId: number) => ['stores', storeId, 'enquiries'] as const;
 const staff = (storeId: number) => ['stores', storeId, 'staff'] as const;
 const roles = (storeId: number) => ['stores', storeId, 'roles'] as const;
 
@@ -74,6 +83,12 @@ export const queryKeys = {
   couriers: (storeId: number) => ['stores', storeId, 'couriers'] as const,
   deliveryZones: (storeId: number) => ['stores', storeId, 'delivery-zones'] as const,
   contactDetails: (storeId: number) => ['stores', storeId, 'contact-details'] as const,
+  enquiries,
+  enquiryList: (storeId: number, filters: EnquiryListFilters) =>
+    [...enquiries(storeId), 'list', filters] as const,
+  enquiry: (storeId: number, enquiryId: number) =>
+    [...enquiries(storeId), 'detail', enquiryId] as const,
+  newEnquiryCount: (storeId: number) => [...enquiries(storeId), 'new-count'] as const,
   staff,
   staffMember: (storeId: number, memberId: number) =>
     [...staff(storeId), 'detail', memberId] as const,

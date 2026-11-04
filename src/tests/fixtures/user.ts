@@ -20,6 +20,8 @@ export function buildUserFixture(overrides: Partial<User> = {}): User {
           'orders.view',
           'orders.manage',
           'fulfilment.manage',
+          'enquiries.view',
+          'enquiries.manage',
           'staff.view',
           'staff.manage',
         ],

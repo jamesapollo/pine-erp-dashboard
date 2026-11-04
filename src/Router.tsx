@@ -20,6 +20,7 @@ import { ProductsPage } from '@/pages/products/ProductsPage';
 import { OrderDetailRoute } from '@/pages/sales/OrderDetailRoute';
 import { DeliveriesPage } from '@/pages/sales/DeliveriesPage';
 import { DeliveryDetailRoute } from '@/pages/sales/DeliveryDetailRoute';
+import { MessagesPage } from '@/pages/messages/MessagesPage';
 import { OrdersPage } from '@/pages/sales/OrdersPage';
 import { StockPage } from '@/pages/inventory/StockPage';
 import { ContactDetailsPage } from '@/pages/store/ContactDetailsPage';
@@ -100,6 +101,21 @@ export const routes: RouteObject[] = [
                       crumbs: ordersCrumbs,
                       trailingCrumb: 'orderReference',
                     } satisfies RouteHandle,
+                  },
+                ],
+              },
+              {
+                element: (
+                  <RequirePermission
+                    slug="enquiries.view"
+                    message="You don't have access to messages."
+                  />
+                ),
+                children: [
+                  {
+                    path: ROUTES.MESSAGES,
+                    element: <MessagesPage />,
+                    handle: { crumbs: ['Messages'] } satisfies RouteHandle,
                   },
                 ],
               },
