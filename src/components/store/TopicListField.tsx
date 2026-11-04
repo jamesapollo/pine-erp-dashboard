@@ -1,16 +1,16 @@
 import { useId } from 'react';
 import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
 
-import { MAX_TOPIC_LENGTH, MAX_TOPICS } from '@/components/store/contactDetailsSchema';
+import {
+  isDuplicateTopic,
+  MAX_TOPIC_LENGTH,
+  MAX_TOPICS,
+} from '@/components/store/contactDetailsSchema';
 import { Button } from '@/components/ui/Button';
 import { FormErrorMessage } from '@/components/ui/FormErrorMessage';
 import { IconButton } from '@/components/ui/IconButton';
 import { Input } from '@/components/ui/Input';
 import { moveItem } from '@/utils/reorder';
-
-export function isDuplicateTopic(topics: string[], name: string): boolean {
-  return topics.some((topic) => topic.toLowerCase() === name.toLowerCase());
-}
 
 // An ordered list of short topic names, edited with Move up / Move down buttons.
 export function TopicListField({

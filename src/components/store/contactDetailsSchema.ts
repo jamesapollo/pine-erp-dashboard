@@ -5,6 +5,10 @@ import { SOCIAL_NETWORKS, type ContactDetails, type SocialNetwork } from '@/type
 export const MAX_TOPICS = 10;
 export const MAX_TOPIC_LENGTH = 40;
 
+export function isDuplicateTopic(topics: string[], name: string): boolean {
+  return topics.some((topic) => topic.toLowerCase() === name.toLowerCase());
+}
+
 const PHONE_PATTERN = /^\+[1-9]\d{6,14}$/;
 const PHONE_MESSAGE = 'Use international format, e.g. +254700000000';
 const HTTPS_MESSAGE = 'Use a link starting with https://';

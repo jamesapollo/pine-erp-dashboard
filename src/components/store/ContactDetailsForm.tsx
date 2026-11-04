@@ -8,6 +8,7 @@ import { type ContactDetails } from '@/types/contactDetails';
 import { useUpdateContactDetailsMutation } from '@/hooks/api/mutations/store/useUpdateContactDetailsMutation';
 import {
   contactDetailsSchema,
+  isDuplicateTopic,
   MAX_TOPIC_LENGTH,
   MAX_TOPICS,
   formatContactPreview,
@@ -15,7 +16,7 @@ import {
   toContactDetailsInput,
   type ContactDetailsInput,
 } from '@/components/store/contactDetailsSchema';
-import { isDuplicateTopic, TopicListField } from '@/components/store/TopicListField';
+import { TopicListField } from '@/components/store/TopicListField';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
