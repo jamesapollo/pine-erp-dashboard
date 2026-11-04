@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId } from 'react';
 import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
 
 import { MAX_TOPIC_LENGTH, MAX_TOPICS } from '@/components/store/contactDetailsSchema';
@@ -8,34 +8,42 @@ import { IconButton } from '@/components/ui/IconButton';
 import { Input } from '@/components/ui/Input';
 import { moveItem } from '@/utils/reorder';
 
+export function isDuplicateTopic(topics: string[], name: string): boolean {
+  return topics.some((topic) => topic.toLowerCase() === name.toLowerCase());
+}
+
 // An ordered list of short topic names, edited with Move up / Move down buttons.
 export function TopicListField({
   topics,
   onChange,
+  draft,
+  onDraftChange,
+  draftError,
   disabled = false,
   error,
 }: {
   topics: string[];
   onChange: (topics: string[]) => void;
+  /** The text in the New topic box. The form owns it so Save can see an unadded topic. */
+  draft: string;
+  onDraftChange: (draft: string, error?: string) => void;
+  draftError?: string;
   /** Read-only: the list shows, but nothing can be added, moved or removed. */
   disabled?: boolean;
   error?: string;
 }) {
   const errorId = useId();
-  const [draft, setDraft] = useState('');
-  const [draftError, setDraftError] = useState<string | undefined>(undefined);
   const isFull = topics.length >= MAX_TOPICS;
 
   function add() {
     const name = draft.trim();
     if (name === '') return;
-    if (topics.some((topic) => topic.toLowerCase() === name.toLowerCase())) {
-      setDraftError('That topic is already in the list');
+    if (isDuplicateTopic(topics, name)) {
+      onDraftChange(draft, 'That topic is already in the list');
       return;
     }
     onChange([...topics, name]);
-    setDraft('');
-    setDraftError(undefined);
+    onDraftChange('');
   }
 
   return (
@@ -91,8 +99,7 @@ export function TopicListField({
             hint={isFull ? `You can add up to ${MAX_TOPICS} topics.` : undefined}
             error={draftError}
             onChange={(event) => {
-              setDraft(event.target.value);
-              setDraftError(undefined);
+              onDraftChange(event.target.value);
             }}
             onKeyDown={(event) => {
               // Enter adds the topic instead of submitting the whole form.

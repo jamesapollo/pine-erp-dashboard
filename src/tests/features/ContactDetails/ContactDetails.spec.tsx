@@ -152,6 +152,37 @@ describe('Contact details', () => {
     expect(screen.getByRole('button', { name: 'Add topic' })).toBeDisabled();
   });
 
+  it('adds a typed but not yet added topic when Save is pressed', async () => {
+    respondWith();
+    const bodies = recordSaves();
+    await openPage();
+
+    await userEvent.type(screen.getByLabelText('New topic'), '  Wholesale ');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(bodies[0]?.enquiry_topics).toEqual(['General', 'Returns', 'Press', 'Wholesale']);
+    expect(topicNames()).toEqual(['General', 'Returns', 'Press', 'Wholesale']);
+    expect(screen.getByLabelText('New topic')).toHaveValue('');
+  });
+
+  it('blocks Save while a typed topic is a duplicate, until it is cleared', async () => {
+    respondWith();
+    const bodies = recordSaves();
+    await openPage();
+
+    await userEvent.type(screen.getByLabelText('New topic'), 'RETURNS');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Add or clear the new topic first')).toBeVisible();
+    expect(bodies).toEqual([]);
+
+    await userEvent.clear(screen.getByLabelText('New topic'));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(bodies[0]?.enquiry_topics).toEqual(['General', 'Returns', 'Press']);
+  });
+
   it('refuses a duplicate topic, ignoring case', async () => {
     respondWith();
     await openPage();

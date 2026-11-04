@@ -1,3 +1,4 @@
+import { useState, type FormEvent } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { isAxiosError } from 'axios';
 import { Controller, useForm, useWatch, type FieldPath } from 'react-hook-form';
@@ -7,12 +8,14 @@ import { type ContactDetails } from '@/types/contactDetails';
 import { useUpdateContactDetailsMutation } from '@/hooks/api/mutations/store/useUpdateContactDetailsMutation';
 import {
   contactDetailsSchema,
+  MAX_TOPIC_LENGTH,
+  MAX_TOPICS,
   formatContactPreview,
   toContactDetailsBody,
   toContactDetailsInput,
   type ContactDetailsInput,
 } from '@/components/store/contactDetailsSchema';
-import { TopicListField } from '@/components/store/TopicListField';
+import { isDuplicateTopic, TopicListField } from '@/components/store/TopicListField';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -49,6 +52,8 @@ export function ContactDetailsForm({
     control,
     reset,
     setError,
+    setValue,
+    getValues,
     formState: { errors },
   } = useForm<ContactDetailsInput>({
     resolver: zodResolver(contactDetailsSchema),
@@ -59,7 +64,10 @@ export function ContactDetailsForm({
   const preview = formatContactPreview(values as ContactDetailsInput);
   const disabled = !canManage;
 
-  const onSubmit = handleSubmit((input) => {
+  const [topicDraft, setTopicDraft] = useState('');
+  const [topicDraftError, setTopicDraftError] = useState<string | undefined>(undefined);
+
+  const submitValidInput = handleSubmit((input) => {
     updateMutation.mutate(toContactDetailsBody(input), {
       onSuccess: (saved) => reset(toContactDetailsInput(saved)),
       onError: (error) => {
@@ -67,6 +75,26 @@ export function ContactDetailsForm({
       },
     });
   });
+
+  // A topic typed but not added yet is added on Save if it is valid; otherwise Save waits.
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    const name = topicDraft.trim();
+    if (name !== '') {
+      const topics = getValues('enquiry_topics');
+      if (
+        name.length > MAX_TOPIC_LENGTH ||
+        topics.length >= MAX_TOPICS ||
+        isDuplicateTopic(topics, name)
+      ) {
+        event.preventDefault();
+        setTopicDraftError('Add or clear the new topic first');
+        return;
+      }
+      setValue('enquiry_topics', [...topics, name]);
+      setTopicDraft('');
+    }
+    void submitValidInput(event);
+  }
 
   return (
     <form noValidate onSubmit={onSubmit} className="flex max-w-[720px] flex-col gap-4">
@@ -195,6 +223,12 @@ export function ContactDetailsForm({
             <TopicListField
               topics={field.value}
               onChange={field.onChange}
+              draft={topicDraft}
+              draftError={topicDraftError}
+              onDraftChange={(draft, draftError) => {
+                setTopicDraft(draft);
+                setTopicDraftError(draftError);
+              }}
               disabled={disabled}
               error={errors.enquiry_topics?.message}
             />
