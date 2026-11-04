@@ -37,6 +37,7 @@ export function ReplyThread({
                 <Button
                   size="sm"
                   variant="secondary"
+                  aria-label={`Resend reply from ${formatDateTime(reply.created_at)}`}
                   disabled={resendingReplyId === reply.id}
                   onClick={() => onResend(reply.id)}
                 >

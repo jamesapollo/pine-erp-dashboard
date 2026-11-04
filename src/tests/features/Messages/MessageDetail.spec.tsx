@@ -119,10 +119,10 @@ describe('Message detail', () => {
     const user = userEvent.setup();
     customRenderAtRoute({ url: '/messages/7' });
 
-    await user.click(await screen.findByRole('button', { name: 'Resend' }));
+    await user.click(await screen.findByRole('button', { name: /^Resend/ }));
 
     expect(await screen.findByText('Sending')).toBeVisible();
-    expect(screen.queryByRole('button', { name: 'Resend' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Resend/ })).not.toBeInTheDocument();
     expect(writes).toEqual([{ method: 'RESEND', body: null }]);
   });
 
@@ -153,6 +153,31 @@ describe('Message detail', () => {
     }
   });
 
+  it('tells apart several Resend buttons by the time of the reply', async () => {
+    serveEnquiry(
+      buildEnquiryDetailFixture({
+        status: 'replied',
+        replies: [
+          buildEnquiryReplyFixture({
+            id: 1,
+            mail_status: 'failed',
+            created_at: '2026-03-01T09:00:00Z',
+          }),
+          buildEnquiryReplyFixture({
+            id: 2,
+            mail_status: 'failed',
+            created_at: '2026-03-02T15:30:00Z',
+          }),
+        ],
+      }),
+    );
+    customRenderAtRoute({ url: '/messages/7' });
+
+    const buttons = await screen.findAllByRole('button', { name: /^Resend reply from / });
+    expect(buttons).toHaveLength(2);
+    expect(buttons[0]?.getAttribute('aria-label')).not.toBe(buttons[1]?.getAttribute('aria-label'));
+  });
+
   it('has no Resend button when every reply was delivered', async () => {
     serveEnquiry(
       buildEnquiryDetailFixture({
@@ -163,7 +188,7 @@ describe('Message detail', () => {
     customRenderAtRoute({ url: '/messages/7' });
 
     await screen.findByText('Yes, we can make it in blue.');
-    expect(screen.queryByRole('button', { name: 'Resend' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Resend/ })).not.toBeInTheDocument();
   });
 
   it('sends a reply, clears the box and marks the message Replied', async () => {
@@ -305,7 +330,7 @@ describe('Message detail', () => {
     expect(screen.queryByRole('textbox', { name: 'Reply' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Send reply' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Resend' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Resend/ })).not.toBeInTheDocument();
   });
 
   it('shows Page not found for an unknown message', async () => {
