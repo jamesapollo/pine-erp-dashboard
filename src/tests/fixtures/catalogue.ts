@@ -114,6 +114,7 @@ export function buildCategoryFixture(overrides: Partial<Category> = {}): Categor
     parent_id: null,
     name: 'Dresses',
     slug: 'dresses',
+    description: null,
     sort_order: 0,
     is_visible: true,
     kind: 'standard',

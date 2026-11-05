@@ -8,9 +8,18 @@ import { getActionErrorMessage } from '@/utils/apiErrors';
 import { axiosInstance } from '@/utils/axiosConfig';
 import { storePath } from '@/utils/storePath';
 
-export type CreateCategoryMutationParams = { name: string; parent_id: number | null };
+export type CreateCategoryMutationParams = {
+  name: string;
+  parent_id: number | null;
+  slug?: string;
+  description?: string | null;
+  is_visible?: boolean;
+};
 
-export function useCreateCategoryMutation() {
+// A form that shows the failure next to its fields passes shouldToastErrors: false.
+export function useCreateCategoryMutation({
+  shouldToastErrors = true,
+}: { shouldToastErrors?: boolean } = {}) {
   const { store } = useAuthedSession();
   const queryClient = useQueryClient();
   const { showToast } = useToastContext();
@@ -29,7 +38,7 @@ export function useCreateCategoryMutation() {
     // Shown here rather than in the screen, so a failure that lands after the editor or dialog
     // has gone still reaches the user.
     onError: (error) => {
-      showToast({ title: getActionErrorMessage(error), tone: 'danger' });
+      if (shouldToastErrors) showToast({ title: getActionErrorMessage(error), tone: 'danger' });
     },
   });
 }

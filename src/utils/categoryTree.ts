@@ -40,3 +40,26 @@ export function indentCategoryLabel(name: string, depth: number): string {
 export function flattenStandardCategories(tree: Category[]) {
   return flattenCategoryTree(tree).filter(({ category }) => category.kind === 'standard');
 }
+
+// How many levels the category's subtree spans; a category with no subcategories is 1.
+export function getSubtreeHeight(tree: Category[], categoryId: number): number {
+  const rows = flattenCategoryTree(tree);
+  const start = rows.findIndex(({ category }) => category.id === categoryId);
+  if (start === -1) return 0;
+  const startDepth = rows[start].depth;
+  let deepest = startDepth;
+  for (let index = start + 1; index < rows.length && rows[index].depth > startDepth; index += 1) {
+    deepest = Math.max(deepest, rows[index].depth);
+  }
+  return deepest - startDepth + 1;
+}
+
+// The URL handle the API would make from a name: lowercase letters and digits joined by hyphens.
+export function slugify(name: string): string {
+  return name
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}

@@ -11,11 +11,16 @@ import { storePath } from '@/utils/storePath';
 export type UpdateCategoryMutationParams = {
   categoryId: number;
   name?: string;
+  slug?: string;
   parent_id?: number | null;
+  description?: string | null;
   is_visible?: boolean;
 };
 
-export function useUpdateCategoryMutation() {
+// A form that shows the failure next to its fields passes shouldToastErrors: false.
+export function useUpdateCategoryMutation({
+  shouldToastErrors = true,
+}: { shouldToastErrors?: boolean } = {}) {
   const { store } = useAuthedSession();
   const queryClient = useQueryClient();
   const { showToast } = useToastContext();
@@ -34,7 +39,7 @@ export function useUpdateCategoryMutation() {
     // Shown here rather than in the screen, so a failure that lands after the editor or dialog
     // has gone still reaches the user.
     onError: (error) => {
-      showToast({ title: getActionErrorMessage(error), tone: 'danger' });
+      if (shouldToastErrors) showToast({ title: getActionErrorMessage(error), tone: 'danger' });
     },
   });
 }

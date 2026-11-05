@@ -217,13 +217,16 @@ describe('Special categories', () => {
 
     await userEvent.click(
       within(await screen.findByRole('list', { name: 'Categories' })).getByRole('button', {
-        name: 'New In',
+        name: /^New In/,
       }),
     );
 
     expect(await screen.findByText('Automatic — New In')).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Delete category' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('combobox', { name: 'Parent' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Subcategory' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Edit category' });
+    expect(within(dialog).queryByRole('combobox', { name: 'Parent' })).not.toBeInTheDocument();
   });
 
   it('is excluded from the product editor category picker', async () => {

@@ -1,5 +1,10 @@
 import { buildCategoryFixture } from '@/tests/fixtures/catalogue';
-import { flattenCategoryTree, getDescendantIds } from '@/utils/categoryTree';
+import {
+  flattenCategoryTree,
+  getDescendantIds,
+  getSubtreeHeight,
+  slugify,
+} from '@/utils/categoryTree';
 
 const tree = [
   buildCategoryFixture({
@@ -46,5 +51,22 @@ describe('categoryTree', () => {
   it('includes grandchildren in the descendants of a root', () => {
     expect(getDescendantIds(tree, 2).sort()).toEqual([5, 7]);
     expect(getDescendantIds(tree, 7)).toEqual([]);
+  });
+});
+
+describe('getSubtreeHeight', () => {
+  it('counts the levels below and including the category', () => {
+    expect(getSubtreeHeight(tree, 2)).toBe(3);
+    expect(getSubtreeHeight(tree, 1)).toBe(2);
+    expect(getSubtreeHeight(tree, 7)).toBe(1);
+    expect(getSubtreeHeight(tree, 99)).toBe(0);
+  });
+});
+
+describe('slugify', () => {
+  it('makes a lowercase hyphenated handle', () => {
+    expect(slugify('  Kitenge & Ankara ')).toBe('kitenge-ankara');
+    expect(slugify('Café Wear')).toBe('cafe-wear');
+    expect(slugify('***')).toBe('');
   });
 });

@@ -67,6 +67,7 @@ export type Category = {
   parent_id: number | null;
   name: string;
   slug: string;
+  description: string | null;
   sort_order: number;
   is_visible: boolean;
   kind: CategoryKind;

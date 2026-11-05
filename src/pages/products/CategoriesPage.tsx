@@ -1,35 +1,38 @@
 import { useState } from 'react';
-import { Plus, Tags } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
+import { type Category } from '@/types/catalogue';
 import { useCategoriesQuery } from '@/hooks/api/queries/catalogue/useCategoriesQuery';
 import { useAuthedSession } from '@/hooks/useAuthedSession';
-import { AddCategoryDialog } from '@/components/products/AddCategoryDialog';
+import { CategoryDetailCard } from '@/components/products/CategoryDetailCard';
+import { CategoryDialog } from '@/components/products/CategoryDialog';
 import { CategoryNavPanel } from '@/components/products/CategoryNavPanel';
-import { CategoryEditor } from '@/components/products/CategoryEditor';
+import { CategoryTreeCard } from '@/components/products/CategoryTreeCard';
 import { Alert } from '@/components/ui/Alert';
-import { BackLink } from '@/components/ui/BackLink';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { NoAccess } from '@/components/ui/NoAccess';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Spinner } from '@/components/ui/Spinner';
 import { isStatus } from '@/utils/apiErrors';
-import { cn } from '@/utils/cn';
-import { flattenCategoryTree, indentCategoryLabel } from '@/utils/categoryTree';
-import { ROUTES } from '@/constants/routes';
+import { flattenCategoryTree } from '@/utils/categoryTree';
+
+type DialogState =
+  { kind: 'closed' } | { kind: 'new'; parentId?: number } | { kind: 'edit'; category: Category };
 
 export function CategoriesPage() {
   const { hasPermission } = useAuthedSession();
   const canManage = hasPermission('catalogue.manage');
   const categoriesQuery = useCategoriesQuery();
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [isAdding, setIsAdding] = useState(false);
+  const [dialog, setDialog] = useState<DialogState>({ kind: 'closed' });
 
   const tree = categoriesQuery.data ?? [];
   const rows = flattenCategoryTree(tree);
   const selected = rows.find(({ category }) => category.id === selectedId) ?? rows[0];
+  const selectedParent = selected
+    ? rows.find(({ category }) => category.id === selected.category.parent_id)?.category
+    : undefined;
 
   let content;
   if (categoriesQuery.isPending) {
@@ -43,50 +46,29 @@ export function CategoriesPage() {
   } else {
     content = (
       <>
-        {canManage ? <CategoryNavPanel categories={tree} /> : null}
-        <div className="flex flex-wrap items-start gap-4">
-          <Card flush className="min-w-0 max-w-[340px] flex-[1_1_260px]">
-            {rows.length === 0 ? null : (
-              <ul aria-label="Categories" className="m-0 flex list-none flex-col p-1.5">
-                {rows.map(({ category, depth }) => (
-                  <li key={category.id}>
-                    <button
-                      type="button"
-                      aria-current={category.id === selected?.category.id ? 'true' : undefined}
-                      onClick={() => setSelectedId(category.id)}
-                      className={cn(
-                        'flex w-full cursor-pointer items-center rounded-control border-0 px-3 py-2.5 text-left text-sm font-medium text-text-primary focus-visible:shadow-focus focus-visible:outline-none',
-                        category.id === selected?.category.id
-                          ? 'bg-surface-selected'
-                          : 'bg-transparent hover:bg-surface-hover',
-                      )}
-                    >
-                      {indentCategoryLabel(category.name, depth)}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-          <div className="min-w-0 flex-[2_1_480px]">
-            {selected ? (
-              <CategoryEditor
-                key={selected.category.id}
-                category={selected.category}
-                tree={tree}
-                canManage={canManage}
-              />
-            ) : (
-              <Card>
-                <EmptyState
-                  icon={Tags}
-                  title="No categories"
-                  description="Add one, such as Dresses, so products can be filed under it."
-                />
-              </Card>
-            )}
-          </div>
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+          <CategoryTreeCard
+            rows={rows}
+            selectedId={selected?.category.id}
+            onSelect={setSelectedId}
+          />
+          {selected ? (
+            <CategoryDetailCard
+              key={selected.category.id}
+              category={selected.category}
+              parent={selectedParent}
+              depth={selected.depth}
+              canManage={canManage}
+              onEdit={() => setDialog({ kind: 'edit', category: selected.category })}
+              onAddSubcategory={() => setDialog({ kind: 'new', parentId: selected.category.id })}
+            />
+          ) : null}
         </div>
+        {canManage ? (
+          <div className="mt-4">
+            <CategoryNavPanel categories={tree} />
+          </div>
+        ) : null}
       </>
     );
   }
@@ -95,19 +77,26 @@ export function CategoriesPage() {
     <div>
       <PageHeader
         title="Categories"
-        sub="Group products so buyers can browse them on the storefront."
-        back={<BackLink to={ROUTES.PRODUCTS}>Products</BackLink>}
+        sub="Hidden categories stay off the storefront menu but keep their products."
         actions={
           canManage ? (
-            <Button onClick={() => setIsAdding(true)}>
+            <Button onClick={() => setDialog({ kind: 'new' })}>
               <Icon icon={Plus} size={16} />
-              Add category
+              New category
             </Button>
           ) : null
         }
       />
       {content}
-      <AddCategoryDialog isOpen={isAdding} tree={tree} onClose={() => setIsAdding(false)} />
+      {dialog.kind === 'closed' ? null : (
+        <CategoryDialog
+          category={dialog.kind === 'edit' ? dialog.category : undefined}
+          parentId={dialog.kind === 'new' ? dialog.parentId : undefined}
+          tree={tree}
+          onSaved={(category) => setSelectedId(category.id)}
+          onClose={() => setDialog({ kind: 'closed' })}
+        />
+      )}
     </div>
   );
 }

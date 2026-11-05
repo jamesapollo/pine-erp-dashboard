@@ -12,9 +12,21 @@ const categories = [
   buildCategoryFixture({
     id: 1,
     name: 'Dresses',
-    children: [buildCategoryFixture({ id: 2, parent_id: 1, name: 'Maxi' })],
+    description: 'Every dress we stock.',
+    children: [
+      buildCategoryFixture({
+        id: 2,
+        parent_id: 1,
+        name: 'Maxi',
+        slug: 'maxi',
+        children: [
+          buildCategoryFixture({ id: 4, parent_id: 2, name: 'Linen maxi', slug: 'linen-maxi' }),
+        ],
+      }),
+    ],
   }),
-  buildCategoryFixture({ id: 3, name: 'Tops', slug: 'tops', sort_order: 1 }),
+  buildCategoryFixture({ id: 3, name: 'Tops', slug: 'tops', sort_order: 1, is_visible: false }),
+  buildCategoryFixture({ id: 5, name: 'New In', slug: 'new-in', sort_order: 2, kind: 'new_in' }),
 ];
 
 function respondWithCategories() {
@@ -24,120 +36,263 @@ function respondWithCategories() {
   );
 }
 
+async function findTree() {
+  return screen.findByRole('list', { name: 'Categories' });
+}
+
+async function selectCategory(name: string) {
+  await userEvent.click(
+    within(await findTree()).getByRole('button', { name: new RegExp(`^${name}`) }),
+  );
+}
+
 describe('Categories', () => {
-  it('lists categories as an indented tree', async () => {
+  it('lists the tree and shows the first category', async () => {
     respondWithCategories();
     customRenderAtRoute({ url: '/products/categories' });
 
-    const tree = await screen.findByRole('list', { name: 'Categories' });
-    const items = within(tree).getAllByRole('button');
-    expect(items.map((item) => item.textContent)).toEqual(['Dresses', '  Maxi', 'Tops']);
-    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Dresses');
+    const tree = await findTree();
+    const rows = within(tree).getAllByRole('button');
+    expect(rows.map((row) => row.textContent)).toEqual([
+      'Dresses',
+      'Maxi',
+      'Linen maxi',
+      'TopsHidden',
+      'New InAutomatic',
+    ]);
+    expect(screen.getByText('5 categories')).toBeVisible();
+    expect(rows[0]).toHaveAttribute('aria-current', 'true');
+
+    expect(screen.getByRole('heading', { name: 'Dresses' })).toBeVisible();
+    expect(screen.getByText('/dresses')).toBeVisible();
+    expect(screen.getByText('Top level')).toBeVisible();
+    expect(screen.getByText('Every dress we stock.')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'View products' })).toHaveAttribute(
+      'href',
+      '/products?category=1',
+    );
   });
 
-  it('adds a category under a parent', async () => {
+  it('shows the selected category', async () => {
+    respondWithCategories();
+    customRenderAtRoute({ url: '/products/categories' });
+
+    await selectCategory('Maxi');
+
+    expect(screen.getByRole('heading', { name: 'Maxi' })).toBeVisible();
+    expect(screen.getByText('/maxi')).toBeVisible();
+    const parentFact = screen.getByText('Parent').parentElement as HTMLElement;
+    expect(within(parentFact).getByText('Dresses')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Subcategory' })).toBeVisible();
+
+    // The deepest level can't hold subcategories.
+    await selectCategory('Linen maxi');
+    expect(screen.queryByRole('button', { name: 'Subcategory' })).not.toBeInTheDocument();
+  });
+
+  it('creates a category with a slug, description and visibility', async () => {
     respondWithCategories();
     let body: unknown;
     server.use(
       http.post(mockEndpoints.categories, async ({ request }) => {
         body = await request.json();
         return HttpResponse.json(
-          { data: buildCategoryFixture({ id: 9, name: 'Kitenge', parent_id: 1 }) },
+          { data: buildCategoryFixture({ id: 9, name: 'Kitenge', slug: 'kitenge' }) },
           { status: 201 },
         );
       }),
     );
     customRenderAtRoute({ url: '/products/categories' });
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Add category' }));
-    const dialog = await screen.findByRole('dialog');
-    await userEvent.type(within(dialog).getByRole('textbox', { name: 'Name' }), 'Kitenge');
+    await userEvent.click(await screen.findByRole('button', { name: 'New category' }));
+    const dialog = await screen.findByRole('dialog', { name: 'New category' });
+    await userEvent.type(within(dialog).getByRole('textbox', { name: 'Name' }), 'Kitenge Wear');
+    expect(within(dialog).getByText('Made from the name: kitenge-wear')).toBeVisible();
+    await userEvent.type(
+      within(dialog).getByRole('textbox', { name: 'Slug (optional)' }),
+      'kitenge',
+    );
     await userEvent.selectOptions(
       within(dialog).getByRole('combobox', { name: 'Parent' }),
       'Dresses',
     );
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Add' }));
+    await userEvent.type(
+      within(dialog).getByRole('textbox', { name: /Description/ }),
+      'Bold prints.',
+    );
+    await userEvent.click(within(dialog).getByRole('switch', { name: 'Visible on storefront' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
 
-    await waitFor(() => expect(body).toEqual({ name: 'Kitenge', parent_id: 1 }));
+    await waitFor(() =>
+      expect(body).toEqual({
+        name: 'Kitenge Wear',
+        slug: 'kitenge',
+        parent_id: 1,
+        description: 'Bold prints.',
+        is_visible: false,
+      }),
+    );
     expect(await screen.findByText('Category added')).toBeVisible();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it("shows the API message when a category with subcategories can't be deleted", async () => {
+  it('leaves the slug to the API when it is empty and validates the name', async () => {
+    respondWithCategories();
+    let body: unknown;
+    server.use(
+      http.post(mockEndpoints.categories, async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ data: buildCategoryFixture({ id: 9 }) }, { status: 201 });
+      }),
+    );
+    customRenderAtRoute({ url: '/products/categories' });
+
+    await userEvent.click(await screen.findByRole('button', { name: 'New category' }));
+    const dialog = await screen.findByRole('dialog', { name: 'New category' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
+    expect(await within(dialog).findByText('Name the category.')).toBeVisible();
+
+    await userEvent.type(within(dialog).getByRole('textbox', { name: 'Name' }), 'Shoes');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
+    await waitFor(() =>
+      expect(body).toEqual({ name: 'Shoes', parent_id: null, description: null, is_visible: true }),
+    );
+  });
+
+  it('offers only parents that keep the tree within three levels', async () => {
+    respondWithCategories();
+    customRenderAtRoute({ url: '/products/categories' });
+
+    await userEvent.click(await screen.findByRole('button', { name: 'New category' }));
+    const dialog = await screen.findByRole('dialog', { name: 'New category' });
+    const options = within(within(dialog).getByRole('combobox', { name: 'Parent' }))
+      .getAllByRole('option')
+      .map((option) => option.textContent?.trim());
+    expect(options).toEqual(['Top level', 'Dresses', 'Maxi', 'Tops']);
+  });
+
+  it('adds a subcategory under the selected category', async () => {
+    respondWithCategories();
+    customRenderAtRoute({ url: '/products/categories' });
+
+    await selectCategory('Tops');
+    await userEvent.click(screen.getByRole('button', { name: 'Subcategory' }));
+    const dialog = await screen.findByRole('dialog', { name: 'New category' });
+    expect(within(dialog).getByRole('combobox', { name: 'Parent' })).toHaveValue('3');
+  });
+
+  it('shows a slug the API rejects next to the field', async () => {
     respondWithCategories();
     server.use(
-      http.delete(mockEndpoints.category, () =>
+      http.post(mockEndpoints.categories, () =>
         HttpResponse.json(
-          {
-            message: 'Invalid.',
-            errors: { category: ["A category with subcategories can't be deleted."] },
-          },
+          { message: 'Invalid.', errors: { slug: ['This slug is already in use.'] } },
           { status: 422 },
         ),
       ),
     );
     customRenderAtRoute({ url: '/products/categories' });
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Delete category' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Delete Dresses?' });
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'New category' }));
+    const dialog = await screen.findByRole('dialog', { name: 'New category' });
+    await userEvent.type(within(dialog).getByRole('textbox', { name: 'Name' }), 'Dresses');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
 
-    expect(
-      await screen.findByText("A category with subcategories can't be deleted."),
-    ).toBeVisible();
-    expect(screen.getByRole('dialog', { name: 'Delete Dresses?' })).toBeVisible();
+    expect(await within(dialog).findByText('This slug is already in use.')).toBeVisible();
+    expect(screen.getByRole('dialog', { name: 'New category' })).toBeVisible();
   });
 
-  it('saves a renamed category and toggles visibility', async () => {
+  it('edits a category, sending only what changed', async () => {
     respondWithCategories();
-    const bodies: unknown[] = [];
+    let body: unknown;
     server.use(
       http.patch(mockEndpoints.category, async ({ request }) => {
-        bodies.push(await request.json());
+        body = await request.json();
+        return HttpResponse.json({ data: { ...categories[0], name: 'Gowns' } });
+      }),
+    );
+    customRenderAtRoute({ url: '/products/categories' });
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Edit category' });
+    expect(within(dialog).getByRole('textbox', { name: 'Slug' })).toHaveValue('dresses');
+    const nameInput = within(dialog).getByRole('textbox', { name: 'Name' });
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, 'Gowns');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(body).toEqual({ name: 'Gowns' }));
+    expect(await screen.findByText('Category saved')).toBeVisible();
+  });
+
+  it('requires a slug on a saved category', async () => {
+    respondWithCategories();
+    customRenderAtRoute({ url: '/products/categories' });
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Edit category' });
+    await userEvent.clear(within(dialog).getByRole('textbox', { name: 'Slug' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+
+    expect(await within(dialog).findByText('Give the category a slug.')).toBeVisible();
+  });
+
+  it('toggles storefront visibility from the detail card', async () => {
+    respondWithCategories();
+    let body: unknown;
+    server.use(
+      http.patch(mockEndpoints.category, async ({ request }) => {
+        body = await request.json();
         return HttpResponse.json({ data: categories[0] });
       }),
     );
     customRenderAtRoute({ url: '/products/categories' });
 
-    const nameInput = await screen.findByRole('textbox', { name: 'Name' });
-    await userEvent.clear(nameInput);
-    await userEvent.type(nameInput, 'Gowns');
-    await userEvent.tab();
-    await waitFor(() => expect(bodies).toEqual([{ name: 'Gowns' }]));
-    expect(await screen.findByText('Category saved')).toBeVisible();
-
-    await userEvent.click(screen.getByRole('switch', { name: 'Visible on storefront' }));
-    await waitFor(() => expect(bodies[1]).toEqual({ is_visible: false }));
+    await userEvent.click(await screen.findByRole('switch', { name: 'Visible on storefront' }));
+    await waitFor(() => expect(body).toEqual({ is_visible: false }));
   });
 
-  it('reports a rename that fails after moving to another category', async () => {
+  it('deletes a category without subcategories', async () => {
     respondWithCategories();
-    let finishRename: () => void = () => {};
-    const renameAnswered = new Promise<void>((resolve) => {
-      finishRename = resolve;
-    });
+    let isDeleted = false;
     server.use(
-      http.patch(mockEndpoints.category, async () => {
-        await renameAnswered;
-        return HttpResponse.json(
-          { message: 'Invalid.', errors: { name: ['That name is already taken.'] } },
-          { status: 422 },
-        );
+      http.delete(mockEndpoints.category, () => {
+        isDeleted = true;
+        return new HttpResponse(null, { status: 204 });
       }),
     );
     customRenderAtRoute({ url: '/products/categories' });
 
-    const nameInput = await screen.findByRole('textbox', { name: 'Name' });
-    await userEvent.clear(nameInput);
-    await userEvent.type(nameInput, 'Tops{Enter}');
-    await userEvent.click(
-      within(screen.getByRole('list', { name: 'Categories' })).getByRole('button', {
-        name: 'Tops',
-      }),
-    );
-    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Tops'));
-    finishRename();
+    await selectCategory('Tops');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete category' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Delete Tops?' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
 
-    expect(await screen.findByText('That name is already taken.')).toBeVisible();
+    await waitFor(() => expect(isDeleted).toBe(true));
+    expect(await screen.findByText('Category deleted')).toBeVisible();
+  });
+
+  it("explains that a category with subcategories can't be deleted", async () => {
+    respondWithCategories();
+    customRenderAtRoute({ url: '/products/categories' });
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Delete category' }));
+    const dialog = await screen.findByRole('dialog', { name: "Can't delete Dresses" });
+    expect(within(dialog).getByText('Delete or move its subcategory first.')).toBeVisible();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'OK' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('shows an automatic category without delete or product links', async () => {
+    respondWithCategories();
+    customRenderAtRoute({ url: '/products/categories' });
+
+    await selectCategory('New In');
+
+    expect(screen.getByText('Automatic — New In')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Delete category' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'View products' })).not.toBeInTheDocument();
   });
 
   it('is read-only without catalogue.manage', async () => {
@@ -157,10 +312,11 @@ describe('Categories', () => {
     );
     customRenderAtRoute({ url: '/products/categories' });
 
-    expect(await screen.findByRole('textbox', { name: 'Name' })).toBeDisabled();
-    expect(screen.queryByRole('button', { name: 'Add category' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('switch', { name: 'Visible on storefront' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'New category' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Delete category' })).not.toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Parent' })).toBeDisabled();
-    expect(screen.getByRole('switch', { name: 'Visible on storefront' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Subcategory' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View products' })).toBeVisible();
   });
 });
