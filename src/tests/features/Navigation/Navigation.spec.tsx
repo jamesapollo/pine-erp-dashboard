@@ -35,12 +35,59 @@ describe('Navigation', () => {
     expect(within(breadcrumb).getByText('Products')).toBeVisible();
   });
 
+  it('lists Categories before Products in the Catalogue section', async () => {
+    respondWithUser();
+    customRenderAtRoute({ url: '/' });
+
+    const sidebar = await screen.findByRole('navigation', { name: 'Main' });
+    const linkNames = within(sidebar)
+      .getAllByRole('link')
+      .map((link) => link.textContent);
+    expect(linkNames.indexOf('Categories')).toBe(linkNames.indexOf('Products') - 1);
+  });
+
+  it('opens Categories from the sidebar and marks only it as the current page', async () => {
+    respondWithUser();
+    const { router } = customRenderAtRoute({ url: '/' });
+
+    const sidebar = await screen.findByRole('navigation', { name: 'Main' });
+    await userEvent.click(within(sidebar).getByRole('link', { name: 'Categories' }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/products/categories'));
+    expect(await screen.findByRole('heading', { name: 'Categories' })).toBeVisible();
+    expect(within(sidebar).getByRole('link', { name: 'Categories' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(within(sidebar).getByRole('link', { name: 'Products' })).not.toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
+  it('keeps Products current on the other product pages', async () => {
+    respondWithUser();
+    customRenderAtRoute({ url: '/products/option-types' });
+
+    await screen.findByRole('heading', { name: 'Option types' });
+    const sidebar = screen.getByRole('navigation', { name: 'Main' });
+    expect(within(sidebar).getByRole('link', { name: 'Products' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(within(sidebar).getByRole('link', { name: 'Categories' })).not.toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
   it('hides Products without catalogue.view and shows no access on the URL', async () => {
     respondWithUser(buildUserWithoutCatalogueView());
     customRenderAtRoute({ url: '/products' });
 
     expect(await screen.findByText("You don't have access to products.")).toBeVisible();
     expect(screen.queryByRole('link', { name: 'Products' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Categories' })).not.toBeInTheDocument();
   });
 
   it('shows Page not found for a non-numeric product id', async () => {

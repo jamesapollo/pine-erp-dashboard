@@ -248,11 +248,12 @@ describe('Messages navigation', () => {
     const labels = within(navigation)
       .getAllByRole('link')
       .map((link) => link.textContent);
-    expect(labels.slice(0, 5)).toEqual([
+    expect(labels.slice(0, 6)).toEqual([
       'Overview',
       'Orders',
       'Deliveries',
       'Messages',
+      'Categories',
       'Products',
     ]);
   });

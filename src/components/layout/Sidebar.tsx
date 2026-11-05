@@ -1,8 +1,9 @@
 import { type ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useMatch } from 'react-router-dom';
 import {
   Boxes,
   Contact,
+  FolderTree,
   Inbox,
   LayoutDashboard,
   LogOut,
@@ -44,6 +45,7 @@ export function Sidebar({
   const pendingOrderCount = usePendingOrderCountQuery({ enabled: canViewOrders });
   const canViewEnquiries = permissions.includes('enquiries.view');
   const newEnquiryCount = useNewEnquiryCountQuery({ enabled: canViewEnquiries });
+  const isOnCategories = useMatch(ROUTES.CATEGORIES) !== null;
   const [primaryRole = ''] = roles;
   const roleLabel = primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1);
 
@@ -87,7 +89,14 @@ export function Sidebar({
         ) : null}
         {permissions.includes('catalogue.view') ? (
           <SidebarGroup label="Catalogue">
-            <SidebarLink to={ROUTES.PRODUCTS} icon={Package} label="Products" />
+            <SidebarLink to={ROUTES.CATEGORIES} icon={FolderTree} label="Categories" />
+            {/* Categories lives under /products, so Products must not light up there too. */}
+            <SidebarLink
+              to={ROUTES.PRODUCTS}
+              icon={Package}
+              label="Products"
+              isForcedInactive={isOnCategories}
+            />
           </SidebarGroup>
         ) : null}
         {permissions.includes('inventory.view') ? (
@@ -153,6 +162,7 @@ function SidebarLink({
   isEnd = false,
   count,
   countLabel,
+  isForcedInactive = false,
 }: {
   to: string;
   icon: LucideIcon;
@@ -160,6 +170,7 @@ function SidebarLink({
   isEnd?: boolean;
   count?: number;
   countLabel?: string;
+  isForcedInactive?: boolean;
 }) {
   const hasCount = count !== undefined && count > 0;
 
@@ -167,10 +178,11 @@ function SidebarLink({
     <NavLink
       to={to}
       end={isEnd}
+      aria-current={isForcedInactive ? false : 'page'}
       className={({ isActive }) =>
         cn(
           'flex h-[34px] w-full items-center gap-2.5 rounded-control px-2.5 text-left text-sm font-medium leading-none',
-          isActive
+          isActive && !isForcedInactive
             ? 'bg-surface-card text-text-primary shadow-[var(--shadow-sm),0_0_0_1px_var(--border-default)]'
             : 'text-text-secondary hover:bg-neutral-100',
         )
@@ -178,7 +190,11 @@ function SidebarLink({
     >
       {({ isActive }) => (
         <>
-          <Icon icon={icon} size={18} className={isActive ? 'text-brand-600' : undefined} />
+          <Icon
+            icon={icon}
+            size={18}
+            className={isActive && !isForcedInactive ? 'text-brand-600' : undefined}
+          />
           <span className="flex-1">{label}</span>
           {hasCount ? (
             <>

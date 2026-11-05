@@ -345,6 +345,7 @@ describe('Sales navigation', () => {
       'Orders',
       'Deliveries',
       'Messages',
+      'Categories',
       'Products',
       'Stock',
       'Staff',
