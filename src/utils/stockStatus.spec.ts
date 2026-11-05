@@ -14,5 +14,6 @@ describe('getAvailableRange', () => {
   it('asks for the same ranges the badges use', () => {
     expect(getAvailableRange('out')).toEqual({ available_max: 0 });
     expect(getAvailableRange('low')).toEqual({ available_min: 1, available_max: 3 });
+    expect(getAvailableRange('low_or_out')).toEqual({ available_max: 3 });
   });
 });

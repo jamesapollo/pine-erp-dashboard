@@ -1,4 +1,4 @@
-import { type StockStatusFilter } from '@/hooks/api/queryKeys';
+import { type StockLevelStatus } from '@/hooks/api/queryKeys';
 import { LOW_STOCK_THRESHOLD } from '@/constants/stock';
 
 export type StockStatus = 'in_stock' | 'low' | 'out';
@@ -10,11 +10,11 @@ export function getStockStatus(available: number): StockStatus {
 }
 
 /** The available range the stock list asks the API for, per status tab. */
-export function getAvailableRange(status: StockStatusFilter): {
+export function getAvailableRange(status: StockLevelStatus): {
   available_min?: number;
   available_max: number;
 } {
-  return status === 'out'
-    ? { available_max: 0 }
-    : { available_min: 1, available_max: LOW_STOCK_THRESHOLD };
+  if (status === 'out') return { available_max: 0 };
+  if (status === 'low_or_out') return { available_max: LOW_STOCK_THRESHOLD };
+  return { available_min: 1, available_max: LOW_STOCK_THRESHOLD };
 }

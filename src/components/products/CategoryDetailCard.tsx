@@ -1,5 +1,4 @@
 import { useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
 import { ArrowRight, Pencil, Plus, Trash2 } from 'lucide-react';
 
 import { type Category } from '@/types/catalogue';
@@ -7,6 +6,7 @@ import { useDeleteCategoryMutation } from '@/hooks/api/mutations/catalogue/useDe
 import { useUpdateCategoryMutation } from '@/hooks/api/mutations/catalogue/useUpdateCategoryMutation';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { ButtonLink } from '@/components/ui/ButtonLink';
 import { Card } from '@/components/ui/Card';
 import { Dialog } from '@/components/ui/Dialog';
 import { Icon } from '@/components/ui/Icon';
@@ -128,13 +128,10 @@ export function CategoryDetailCard({
                   Subcategory
                 </Button>
               ) : null}
-              <Link
-                to={`${ROUTES.PRODUCTS}?category=${category.id}`}
-                className="inline-flex h-7 items-center gap-[5px] rounded-control px-2.5 text-[13px] font-medium leading-none text-text-secondary no-underline transition duration-[120ms] ease-out hover:bg-neutral-100 hover:text-text-primary focus-visible:shadow-focus focus-visible:outline-none"
-              >
+              <ButtonLink to={`${ROUTES.PRODUCTS}?category=${category.id}`}>
                 View products
                 <Icon icon={ArrowRight} size={14} />
-              </Link>
+              </ButtonLink>
             </div>
           )}
         </div>

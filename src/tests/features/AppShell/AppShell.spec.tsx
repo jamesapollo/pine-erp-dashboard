@@ -28,7 +28,9 @@ describe('AppShell', () => {
     expect(await screen.findByText('Zion')).toBeVisible();
     expect(screen.getByText('Wanjiru Kamau')).toBeVisible();
     expect(screen.getByText('Owner')).toBeVisible();
-    expect(screen.getByRole('heading', { name: 'Overview' })).toBeVisible();
+    expect(
+      screen.getByRole('heading', { name: /^Good (morning|afternoon|evening)/ }),
+    ).toBeVisible();
   });
 
   it('signs out and returns to login', async () => {

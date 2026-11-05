@@ -118,7 +118,7 @@ describe('Navigation', () => {
     respondWithUser();
     customRenderAtRoute({ url: '/' });
 
-    await screen.findByRole('heading', { name: 'Overview' });
+    await screen.findByRole('heading', { name: /^Good (morning|afternoon|evening)/ });
     const breadcrumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
     expect(within(breadcrumb).getByText('Overview')).toBeVisible();
   });

@@ -188,7 +188,9 @@ describe('Accept invite', () => {
       expect(router.state.location.pathname).toBe('/');
     });
     expect(hasAccepted()).toBe(true);
-    expect(await screen.findByRole('heading', { name: 'Overview' })).toBeVisible();
+    expect(
+      await screen.findByRole('heading', { name: /^Good (morning|afternoon|evening)/ }),
+    ).toBeVisible();
   });
 
   it('accepts with one button when signed in', async () => {

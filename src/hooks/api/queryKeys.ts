@@ -42,9 +42,11 @@ export type OfferListFilters = {
 };
 
 export type StockStatusFilter = 'low' | 'out';
+/** The stock list's tabs, plus low and out together for the overview. */
+export type StockLevelStatus = StockStatusFilter | 'low_or_out';
 
 export type StockListFilters = {
-  status?: StockStatusFilter;
+  status?: StockLevelStatus;
   search?: string;
   category?: number;
   page?: number;

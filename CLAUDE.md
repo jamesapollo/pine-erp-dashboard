@@ -43,8 +43,8 @@ A reference guide for developers working on this codebase. Covers architecture, 
 
 ```
 src/
-├── components/     # UI components: ui/ (primitives), auth/, layout/, products/, offers/, sales/, inventory/,
-│                   # store/, staff/
+├── components/     # UI components: ui/ (primitives), auth/, layout/, overview/, products/, offers/, sales/,
+│                   # inventory/, store/, staff/
 ├── constants/      # Global constants (UPPER_CASE exports), e.g. routes.ts
 ├── hooks/          # Custom hooks (generic + API-specific)
 ├── pages/          # Page-level route components (products/ the catalogue screens, offers/ the offers list and
@@ -79,6 +79,7 @@ components/
 │              # person, AcceptInviteExistingAccount for someone who has an account, AcceptInviteFailure),
 │              # ProtectedRoute (+ AuthedSessionContext), GuestRoute, RequirePermission
 ├── layout/    # AuthLayout and the signed-in AppShell (Sidebar, Topbar)
+├── overview/  # The Overview page's cards: NeedsConfirmingCard (pending orders), LowStockCard (3 or fewer left)
 ├── products/  # Catalogue screens' forms, cards, tables and dialogs (ProductNewForm, ProductDetailForm, …)
 ├── offers/    # Offers: OffersTable, OfferEditorForm (+ offerSchema) and its cards (OfferDetailsCard,
 │              # OfferScheduleCard, OfferTargetsCard, OfferStatusCard), DeleteOfferDialog
@@ -112,6 +113,7 @@ Besides the originals (`Button`, `IconButton`, `Input`, `Card`, `Alert`, `Icon`,
 | `Pagination`                     | "Showing {from}–{to} of {total}" footer with previous/next (orders, deliveries)                   |
 | `DataTable`                      | Generic `DataTable<Row>` with `columns`, `rows`, `getRowKey`, `caption`                           |
 | `PageHeader`, `BackLink`         | Page title row with actions; back link above it                                                   |
+| `ButtonLink`                     | Router link styled as a small ghost or secondary button (card header and footer navigation)       |
 | `Dialog`                         | Modal dialog (confirmations, add category, add variant, …)                                        |
 | `Toast` + `ToastContextProvider` | Notifications; call `useToastContext().showToast({ title, tone })`                                |
 | `NoAccess`                       | The "no permission" screen rendered by `RequirePermission`                                        |
@@ -322,7 +324,9 @@ src/hooks/
 │   │   ├── staff/                            # useStaffQuery, useStaffMemberQuery, useRolesQuery, useRoleQuery,
 │   │   │                                     # usePermissionsQuery, useInvitationQuery (public, by token)
 │   │   └── sales/                            # useOrdersQuery, useOrderQuery, useOrderStatusCountsQuery,
-│   │                                         # usePendingOrderCountQuery, useDeliveriesQuery, useDeliveryQuery,
+│   │                                         # usePendingOrderCountQuery, useSalesPipelineCountsQuery (the
+│   │                                         # overview's order and delivery counts), useDeliveriesQuery,
+│   │                                         # useDeliveryQuery,
 │   │                                         # useCouriersQuery, useDeliveryZonesQuery
 │   └── mutations/
 │       ├── auth/                             # useSignInMutation, useSignOutMutation,
@@ -900,7 +904,7 @@ The MSW endpoint paths are in `src/tests/mocks/endpoints.ts` (`mockEndpoints`); 
 ```typescript
 server.use(http.get(mockEndpoints.me, () => HttpResponse.json({ data: buildUserFixture() })));
 const { router } = customRenderAtRoute({ url: '/' });
-expect(await screen.findByRole('heading', { name: 'Overview' })).toBeVisible();
+expect(await screen.findByRole('heading', { name: /^Good (morning|afternoon|evening)/ })).toBeVisible();
 ```
 
 ### Navigation assertions

@@ -25,7 +25,9 @@ describe('Session', () => {
     const { router } = customRenderAtRoute({ url: '/login' });
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
-    expect(await screen.findByRole('heading', { name: 'Overview' })).toBeVisible();
+    expect(
+      await screen.findByRole('heading', { name: /^Good (morning|afternoon|evening)/ }),
+    ).toBeVisible();
   });
 
   it('shows the no-store screen when there is no active membership', async () => {
@@ -64,7 +66,9 @@ describe('Session', () => {
     respondWithUser();
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
 
-    expect(await screen.findByRole('heading', { name: 'Overview' })).toBeVisible();
+    expect(
+      await screen.findByRole('heading', { name: /^Good (morning|afternoon|evening)/ }),
+    ).toBeVisible();
   });
 
   it('opens the reset page whether or not the user is signed in', async () => {
@@ -76,7 +80,7 @@ describe('Session', () => {
   });
 
   it.each([
-    { url: '/', sentinel: 'Overview' },
+    { url: '/', sentinel: /^Good (morning|afternoon|evening)/ },
     { url: '/orders', sentinel: 'Orders' },
     { url: '/products', sentinel: 'Products' },
   ])(
