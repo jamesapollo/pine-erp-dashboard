@@ -8,6 +8,9 @@ export const ROUTES = {
   OPTION_TYPES: '/products/option-types',
   CATEGORIES: '/products/categories',
   PRODUCT_DETAIL: '/products/:productId',
+  OFFERS: '/offers',
+  OFFER_NEW: '/offers/new',
+  OFFER_DETAIL: '/offers/:offerId',
   ORDERS: '/orders',
   ORDER_DETAIL: '/orders/:orderId',
   DELIVERIES: '/deliveries',
@@ -28,6 +31,10 @@ export const ROUTES = {
 
 export function buildProductPath(productId: number): string {
   return `${ROUTES.PRODUCTS}/${productId}`;
+}
+
+export function buildOfferPath(offerId: number): string {
+  return `${ROUTES.OFFERS}/${offerId}`;
 }
 
 export function buildOrderPath(orderId: number): string {

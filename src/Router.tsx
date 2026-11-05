@@ -12,6 +12,9 @@ import { NotFoundPage } from '@/pages/NotFoundPage';
 import { OverviewPage } from '@/pages/OverviewPage';
 import { AcceptInvitePage } from '@/pages/AcceptInvitePage';
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
+import { OfferDetailRoute } from '@/pages/offers/OfferDetailRoute';
+import { OfferNewPage } from '@/pages/offers/OfferNewPage';
+import { OffersPage } from '@/pages/offers/OffersPage';
 import { CategoriesPage } from '@/pages/products/CategoriesPage';
 import { OptionTypesPage } from '@/pages/products/OptionTypesPage';
 import { ProductDetailRoute } from '@/pages/products/ProductDetailRoute';
@@ -34,6 +37,7 @@ import { StaffPage } from '@/pages/staff/StaffPage';
 import { type RouteHandle } from '@/types/routeHandle';
 
 const productsCrumbs = ['Catalogue', 'Products'];
+const offersCrumbs = ['Catalogue', 'Offers'];
 const ordersCrumbs = ['Sales', 'Orders'];
 const deliveriesCrumbs = ['Sales', 'Deliveries'];
 const stockCrumbs = ['Inventory', 'Stock'];
@@ -169,6 +173,44 @@ export const routes: RouteObject[] = [
                     handle: {
                       crumbs: productsCrumbs,
                       trailingCrumb: 'productName',
+                    } satisfies RouteHandle,
+                  },
+                ],
+              },
+              {
+                element: (
+                  <RequirePermission
+                    slug="pricing.view"
+                    message="You don't have access to offers."
+                  />
+                ),
+                children: [
+                  {
+                    path: ROUTES.OFFERS,
+                    element: <OffersPage />,
+                    handle: { crumbs: offersCrumbs } satisfies RouteHandle,
+                  },
+                  {
+                    element: (
+                      <RequirePermission
+                        slug="pricing.manage"
+                        message="You don't have permission to do that."
+                      />
+                    ),
+                    children: [
+                      {
+                        path: ROUTES.OFFER_NEW,
+                        element: <OfferNewPage />,
+                        handle: { crumbs: [...offersCrumbs, 'New'] } satisfies RouteHandle,
+                      },
+                    ],
+                  },
+                  {
+                    path: ROUTES.OFFER_DETAIL,
+                    element: <OfferDetailRoute />,
+                    handle: {
+                      crumbs: offersCrumbs,
+                      trailingCrumb: 'offerName',
                     } satisfies RouteHandle,
                   },
                 ],

@@ -4,6 +4,7 @@ import { ChevronRight } from 'lucide-react';
 
 import { type RouteHandle } from '@/types/routeHandle';
 import { useProductQuery } from '@/hooks/api/queries/catalogue/useProductQuery';
+import { useOfferQuery } from '@/hooks/api/queries/pricing/useOfferQuery';
 import { useStockLevelQuery } from '@/hooks/api/queries/inventory/useStockLevelQuery';
 import { useRoleQuery } from '@/hooks/api/queries/staff/useRoleQuery';
 import { useStaffMemberQuery } from '@/hooks/api/queries/staff/useStaffMemberQuery';
@@ -73,6 +74,12 @@ export function Topbar() {
   const shouldLoadRole = hasRoleCrumb && isValidRoleId && hasPermission('staff.view');
   const roleQuery = useRoleQuery(shouldLoadRole ? Number(roleIdParam) : Number.NaN);
 
+  const offerIdParam = deepestMatch?.params.offerId;
+  const hasOfferCrumb = trailingCrumb === 'offerName';
+  const isValidOfferId = isDigits(offerIdParam);
+  const shouldLoadOffer = hasOfferCrumb && isValidOfferId && hasPermission('pricing.view');
+  const offerQuery = useOfferQuery(shouldLoadOffer ? Number(offerIdParam) : Number.NaN);
+
   let crumbs = deepestHandle?.crumbs ?? [];
   if (
     (hasProductCrumb && !isValidProductId) ||
@@ -80,7 +87,8 @@ export function Topbar() {
     (hasDeliveryCrumb && !isValidDeliveryId) ||
     (hasStockVariantCrumb && !isValidVariantId) ||
     (hasStaffMemberCrumb && !isValidStaffMemberId) ||
-    (hasRoleCrumb && !isValidRoleId)
+    (hasRoleCrumb && !isValidRoleId) ||
+    (hasOfferCrumb && !isValidOfferId)
   ) {
     crumbs = ['Page not found'];
   } else if (hasProductCrumb && productQuery.data) {
@@ -95,6 +103,8 @@ export function Topbar() {
     crumbs = [...crumbs, staffMemberQuery.data.name];
   } else if (hasRoleCrumb && roleQuery.data) {
     crumbs = [...crumbs, roleQuery.data.name];
+  } else if (hasOfferCrumb && offerQuery.data) {
+    crumbs = [...crumbs, offerQuery.data.name];
   }
 
   return (

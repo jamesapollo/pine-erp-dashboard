@@ -43,11 +43,12 @@ A reference guide for developers working on this codebase. Covers architecture, 
 
 ```
 src/
-├── components/     # UI components: ui/ (primitives), auth/, layout/, products/, sales/, inventory/, store/,
-│                   # staff/
+├── components/     # UI components: ui/ (primitives), auth/, layout/, products/, offers/, sales/, inventory/,
+│                   # store/, staff/
 ├── constants/      # Global constants (UPPER_CASE exports), e.g. routes.ts
 ├── hooks/          # Custom hooks (generic + API-specific)
-├── pages/          # Page-level route components (products/ the catalogue screens, sales/ orders and deliveries,
+├── pages/          # Page-level route components (products/ the catalogue screens, offers/ the offers list and
+│                   # editor, sales/ orders and deliveries,
 │                   # inventory/ the stock list and one variant's stock, store/ delivery zones, staff/ the staff
 │                   # and roles screens; the public AcceptInvitePage sits at pages/AcceptInvitePage.tsx)
 ├── styles/tokens/  # Design-token CSS copied verbatim from the Commerce ERP design system
@@ -79,6 +80,8 @@ components/
 │              # ProtectedRoute (+ AuthedSessionContext), GuestRoute, RequirePermission
 ├── layout/    # AuthLayout and the signed-in AppShell (Sidebar, Topbar)
 ├── products/  # Catalogue screens' forms, cards, tables and dialogs (ProductNewForm, ProductDetailForm, …)
+├── offers/    # Offers: OffersTable, OfferEditorForm (+ offerSchema) and its cards (OfferDetailsCard,
+│              # OfferScheduleCard, OfferTargetsCard, OfferStatusCard), DeleteOfferDialog
 ├── sales/     # Orders and deliveries: tables, detail cards, header actions and their dialogs (OrdersTable,
 │              # OrderHeaderActions, DispatchOrderDialog, DeliveryHeaderActions, DeliveryTrackingDialog, …)
 ├── inventory/ # Stock screens: StockLevelsTable, VariantTransactionsCard, StockAdjustDialog (+ stockAdjustSchema)
@@ -314,6 +317,8 @@ src/hooks/
 │   │   ├── inventory/                        # useStockMovementsQuery (a product's), useVariantStockMovementsQuery,
 │   │   │                                     # useStockLevelsQuery, useStockSummaryQuery (tab counts, totals),
 │   │   │                                     # useStockLevelQuery (one variant)
+│   │   ├── pricing/                          # useOffersQuery, useOfferStatusCountsQuery (tab counts),
+│   │   │                                     # useOfferQuery
 │   │   ├── staff/                            # useStaffQuery, useStaffMemberQuery, useRolesQuery, useRoleQuery,
 │   │   │                                     # usePermissionsQuery, useInvitationQuery (public, by token)
 │   │   └── sales/                            # useOrdersQuery, useOrderQuery, useOrderStatusCountsQuery,
@@ -326,6 +331,7 @@ src/hooks/
 │       │                                     # variants, images (upload, delete, set main, reorder),
 │       │                                     # categories, option types and option values
 │       ├── inventory/useCreateStockAdjustmentMutation.ts
+│       ├── pricing/                          # useSaveOfferMutation (create or update), useDeleteOfferMutation
 │       ├── staff/                            # invite, resend and revoke an invitation, accept an invitation,
 │       │                                     # update, deactivate/reactivate and remove a member, send a
 │       │                                     # password reset, save and delete a role
@@ -340,6 +346,7 @@ src/hooks/
 ├── useProductListFilters.ts                  # products list filters kept in the URL search params
 ├── useOrderListFilters.ts                    # orders list filters (status, search, fee pending, page) in the URL
 ├── useDeliveryListFilters.ts                 # deliveries list filters kept in the URL search params
+├── useOfferListFilters.ts                    # offers list filters (status, search, page) in the URL
 └── useStockListFilters.ts                    # stock list filters (low/out status, search, category, page) in the URL
 ```
 
@@ -583,6 +590,9 @@ export const ROUTES = {
   OPTION_TYPES: '/products/option-types',
   CATEGORIES: '/products/categories',
   PRODUCT_DETAIL: '/products/:productId',
+  OFFERS: '/offers',
+  OFFER_NEW: '/offers/new',
+  OFFER_DETAIL: '/offers/:offerId',
   ORDERS: '/orders',
   ORDER_DETAIL: '/orders/:orderId',
   DELIVERIES: '/deliveries',
@@ -601,7 +611,7 @@ export const ROUTES = {
 export function buildProductPath(productId: number): string {
   return `${ROUTES.PRODUCTS}/${productId}`;
 }
-// buildOrderPath(orderId), buildDeliveryPath(deliveryId), buildStockVariantPath(variantId),
+// buildOfferPath(offerId), buildOrderPath(orderId), buildDeliveryPath(deliveryId), buildStockVariantPath(variantId),
 // buildStaffMemberPath(memberId) and buildRolePath(roleId) follow the same shape.
 ```
 
@@ -619,18 +629,20 @@ fields.
 
 - Every page route under `AppShell` carries a `handle` typed as `RouteHandle` (`/types/routeHandle.ts`): `crumbs`
   for the `Topbar` breadcrumb, and `trailingCrumb` (`'productName'`, `'orderReference'`, `'deliveryReference'` or
-  `'stockVariantName'`, `'staffMemberName'` or `'roleName'`) to append the loaded product's title, the order's
-  reference, "Product · S · Red", the staff member's name or the role's name.
+  `'stockVariantName'`, `'staffMemberName'`, `'roleName'` or `'offerName'`) to append the loaded product's title,
+  the order's reference, "Product · S · Red", the staff member's name, the role's name or the offer's name.
 - `RequirePermission` (`components/auth/RequirePermission.tsx`) is a layout route: it renders `<Outlet />` when
   `hasPermission(slug)` and otherwise `NoAccess` with the given message. The products screens sit under
   `catalogue.view` with the fixed copy "You don't have access to products."; the four sales screens (orders list and
   detail, deliveries list and detail) and delivery zones under `orders.view` with "You don't have access to orders."; the two stock
-  screens under `inventory.view` with "You don't have access to stock."; the four staff screens (staff list and
+  screens under `inventory.view` with "You don't have access to stock."; the three offer screens under `pricing.view`
+  with "You don't have access to offers." (the new offer page also needs `pricing.manage`); the four staff screens (staff list and
   member, roles list and role editor) under `staff.view` with "You don't have access to staff." It never signs the
   user out.
 - Finer permissions are checked inside screens with `useAuthedSession().hasPermission(…)`: `catalogue.manage` for
   edits, `pricing.manage` for any `price` field (without it the request never carries a `price` key), and
-  `inventory.manage` for stock. `orders.manage` gates every order and delivery action (confirm, cancel, dispatch,
+  `inventory.manage` for stock. `pricing.manage` also gates creating, editing and deleting offers; choosing an
+  offer's categories and products reads the catalogue, so without `catalogue.view` the targets are shown read-only. `orders.manage` gates every order and delivery action (confirm, cancel, dispatch,
   complete, delivery fee, delivery moves, notes, tracking edits); without it the sales screens are read-only.
   `fulfilment.manage` gates adding, editing, switching, reordering and deleting delivery zones. `staff.manage` gates
   every staff and role action (invite, resend or revoke an invitation, rename, change role, deactivate, reactivate,
@@ -744,6 +756,7 @@ src/types/
 ├── catalogue.ts     # Money, Product, ProductListItem, ProductVariant, ProductImage, OptionType, Category,
 │                    # StockMovement, Paginated<T>
 ├── routeHandle.ts   # RouteHandle for route breadcrumbs
+├── pricing.ts       # OfferType, OfferStatus, Offer (with its product, variant and category targets)
 ├── sales.ts         # Order, OrderListItem, OrderLine, Delivery, DeliveryListItem, DeliveryTimelineEvent, Courier
 ├── staff.ts         # StaffStatus, StaffRoleSummary, StaffInvitation, StaffMember, Role, RoleMember, RoleDetail,
 │                    # Permission, InvitationPreview
@@ -876,7 +889,7 @@ with a membership and the catalogue, pricing, inventory and orders permissions) 
 `sales.ts` `buildOrderFixture`, `buildOrderListItemFixture`, `buildOrderLineFixture`, `buildOrderDeliveryFixture`,
 `buildDeliveryFixture`, `buildDeliveryListItemFixture`, `buildDeliveryEventFixture` and `buildCourierFixture`; in `staff.ts`
 `buildStaffMemberFixture`, `buildRoleFixture`, `buildRoleDetailFixture`, `buildPermissionFixture` and
-`buildInvitationPreviewFixture` (the default `buildUserFixture` also holds `staff.view` and `staff.manage`).
+`buildInvitationPreviewFixture`; in `pricing.ts` `buildOfferFixture` (the default `buildUserFixture` also holds `staff.view` and `staff.manage`).
 The MSW endpoint paths are in `src/tests/mocks/endpoints.ts` (`mockEndpoints`); the store-scoped ones use a
 `:storeId` parameter, e.g. `mockEndpoints.product` is `/api/v1/stores/:storeId/products/:productId`.
 
@@ -969,6 +982,8 @@ utils/
 ├── storePath.ts       # storePath(storeId, path) → /api/v1/stores/{storeId}{path}
 ├── money.ts           # formatMoney, formatAmount, isValidPrice, toMoneyInput
 ├── staffCache.ts      # invalidateTeamQueries, storeStaffMemberResponse, refreshAfterStaffMemberGone
+├── offers.ts        # getOfferStatus, describeOfferTiming, formatOfferDiscount, summariseOfferTargets,
+│                    # toDateTimeLocal / fromDateTimeLocal
 ├── rolePermissions.ts # togglePermission (keeps a manage permission's view one), countVisiblePermissions
 └── queryClient.ts     # the single QueryClient
 
@@ -982,6 +997,12 @@ inventory ones too (`'/stock-movements'` filtered by `product_id` or `variant_id
 (`getAvailableRange`, `/utils/stockStatus.ts`); "low" is 1 to `LOW_STOCK_THRESHOLD` (`/constants/stock.ts`, 3), the
 same rule `getStockStatus` and `StockCount` use. Lists come back as
 `Paginated<T>` (`/types/catalogue.ts`).
+
+Offers are store-scoped (`'/offers'`, `'/offers/{offerId}'`). The list filters by `status` (`live`, `scheduled`,
+`inactive`, `ended`) and `q`; there is no counts endpoint, so the tab counts are `per_page=1` requests. Offer times
+come back as UTC; the editor shows them in the browser's time zone and sends them as ISO instants with an offset,
+because a time without one is read in the store's time zone. Saves never send `variant_ids`, so variant targets set
+elsewhere are kept. The store's minimum price is not exposed, so the sale-price floor is the API's 422 message.
 
 Staff endpoints are store-scoped too: `'/staff'` (members, `/staff/invitations`, `/staff/{memberId}` with its
 `/deactivate`, `/reactivate`, `/password-reset` and `/invitation` actions), `'/roles'` and `'/permissions'`. The

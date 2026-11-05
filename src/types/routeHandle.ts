@@ -6,5 +6,6 @@ export type RouteHandle = {
     | 'deliveryReference'
     | 'stockVariantName'
     | 'staffMemberName'
-    | 'roleName';
+    | 'roleName'
+    | 'offerName';
 };

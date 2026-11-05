@@ -1,4 +1,5 @@
 import { type EnquiryStatus } from '@/types/enquiry';
+import { type OfferStatus } from '@/types/pricing';
 import { type ProductStatus, type StockMovementType } from '@/types/catalogue';
 import { type DeliveryStatus, type OrderStatus } from '@/types/sales';
 
@@ -33,6 +34,13 @@ export type EnquiryListFilters = {
   perPage?: number;
 };
 
+export type OfferListFilters = {
+  status?: OfferStatus;
+  search?: string;
+  page?: number;
+  perPage?: number;
+};
+
 export type StockStatusFilter = 'low' | 'out';
 
 export type StockListFilters = {
@@ -51,6 +59,7 @@ const stockLevels = (storeId: number) => ['stores', storeId, 'stock-levels'] as 
 const enquiries = (storeId: number) => ['stores', storeId, 'enquiries'] as const;
 const staff = (storeId: number) => ['stores', storeId, 'staff'] as const;
 const roles = (storeId: number) => ['stores', storeId, 'roles'] as const;
+const offers = (storeId: number) => ['stores', storeId, 'offers'] as const;
 
 export const queryKeys = {
   me: ['me'],
@@ -94,6 +103,10 @@ export const queryKeys = {
     [...staff(storeId), 'detail', memberId] as const,
   roles,
   role: (storeId: number, roleId: number) => [...roles(storeId), 'detail', roleId] as const,
+  offers,
+  offerList: (storeId: number, filters: OfferListFilters) =>
+    [...offers(storeId), 'list', filters] as const,
+  offer: (storeId: number, offerId: number) => [...offers(storeId), 'detail', offerId] as const,
   permissions: (storeId: number) => ['stores', storeId, 'permissions'] as const,
   invitation: (token: string) => ['invitations', token] as const,
 } as const;

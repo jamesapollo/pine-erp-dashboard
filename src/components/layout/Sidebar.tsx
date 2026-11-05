@@ -11,6 +11,7 @@ import {
   Package,
   ShieldCheck,
   ShoppingBag,
+  Tag,
   Truck,
   Users,
   type LucideIcon,
@@ -42,6 +43,8 @@ export function Sidebar({
   const canViewOrders = permissions.includes('orders.view');
   const canViewStaff = permissions.includes('staff.view');
   const canViewStore = permissions.includes('store.view');
+  const canViewCatalogue = permissions.includes('catalogue.view');
+  const canViewPricing = permissions.includes('pricing.view');
   const pendingOrderCount = usePendingOrderCountQuery({ enabled: canViewOrders });
   const canViewEnquiries = permissions.includes('enquiries.view');
   const newEnquiryCount = useNewEnquiryCountQuery({ enabled: canViewEnquiries });
@@ -87,16 +90,21 @@ export function Sidebar({
             />
           </SidebarGroup>
         ) : null}
-        {permissions.includes('catalogue.view') ? (
+        {canViewCatalogue || canViewPricing ? (
           <SidebarGroup label="Catalogue">
-            <SidebarLink to={ROUTES.CATEGORIES} icon={FolderTree} label="Categories" />
-            {/* Categories lives under /products, so Products must not light up there too. */}
-            <SidebarLink
-              to={ROUTES.PRODUCTS}
-              icon={Package}
-              label="Products"
-              isForcedInactive={isOnCategories}
-            />
+            {canViewCatalogue ? (
+              <>
+                <SidebarLink to={ROUTES.CATEGORIES} icon={FolderTree} label="Categories" />
+                {/* Categories lives under /products, so Products must not light up there too. */}
+                <SidebarLink
+                  to={ROUTES.PRODUCTS}
+                  icon={Package}
+                  label="Products"
+                  isForcedInactive={isOnCategories}
+                />
+              </>
+            ) : null}
+            {canViewPricing ? <SidebarLink to={ROUTES.OFFERS} icon={Tag} label="Offers" /> : null}
           </SidebarGroup>
         ) : null}
         {permissions.includes('inventory.view') ? (
