@@ -28,7 +28,7 @@ const VIEWER = buildUserFixture({
 });
 
 const SAVED: ContactDetails = {
-  email: 'hello@zion.co.ke',
+  email: 'hello@zion.com',
   phone: '+254700000000',
   whatsapp: null,
   address_line: '12 Kimathi Street',
@@ -82,7 +82,7 @@ describe('Contact details', () => {
     respondWith();
     await openPage();
 
-    expect(screen.getByLabelText('Email')).toHaveValue('hello@zion.co.ke');
+    expect(screen.getByLabelText('Email')).toHaveValue('hello@zion.com');
     expect(screen.getByLabelText('Phone')).toHaveValue('+254700000000');
     expect(screen.getByLabelText('City')).toHaveValue('Nairobi');
     expect(screen.getByLabelText('Instagram')).toHaveValue('https://instagram.com/zion');
@@ -95,10 +95,10 @@ describe('Contact details', () => {
     respondWith();
     await openPage();
 
-    expect(screen.getByText('+254700000000 · hello@zion.co.ke · Nairobi, KE')).toBeVisible();
+    expect(screen.getByText('+254700000000 · hello@zion.com · Nairobi, KE')).toBeVisible();
 
     await userEvent.clear(screen.getByLabelText('Phone'));
-    expect(screen.getByText('hello@zion.co.ke · Nairobi, KE')).toBeVisible();
+    expect(screen.getByText('hello@zion.com · Nairobi, KE')).toBeVisible();
   });
 
   it('rejects a phone number that is not in international format', async () => {
@@ -183,7 +183,7 @@ describe('Contact details', () => {
     expect(bodies[0]?.enquiry_topics).toEqual(['General', 'Returns', 'Press']);
   });
 
-  it('explains that the email receives customers\' answers', async () => {
+  it("explains that the email receives customers' answers", async () => {
     respondWith();
     await openPage();
 

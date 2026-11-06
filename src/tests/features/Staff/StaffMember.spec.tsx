@@ -31,7 +31,7 @@ const staffRole = buildRoleFixture({
 const invitedMember = buildStaffMemberFixture({
   id: 12,
   name: 'Kofi Otieno',
-  email: 'kofi@zion.co.ke',
+  email: 'kofi@zion.com',
   status: 'invited',
   role: { id: 3, name: 'Staff', slug: 'staff', is_system: false },
   last_active_at: null,
@@ -284,7 +284,7 @@ describe('Staff member detail', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Send password reset?' });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Send link' }));
 
-    expect(await screen.findByText('Reset link sent to brian@zion.co.ke')).toBeVisible();
+    expect(await screen.findByText('Reset link sent to brian@zion.com')).toBeVisible();
   });
 
   it('removes after confirming and returns to the list', async () => {

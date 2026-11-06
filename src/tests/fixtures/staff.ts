@@ -11,7 +11,7 @@ export function buildStaffMemberFixture(overrides: Partial<StaffMember> = {}): S
     id: 11,
     user_id: 21,
     name: 'Brian Mwangi',
-    email: 'brian@zion.co.ke',
+    email: 'brian@zion.com',
     status: 'active',
     is_owner: false,
     role: { id: 2, name: 'Manager', slug: 'manager', is_system: true },
@@ -43,7 +43,7 @@ export function buildRoleDetailFixture(overrides: Partial<RoleDetail> = {}): Rol
         member_id: 11,
         user_id: 21,
         name: 'Brian Mwangi',
-        email: 'brian@zion.co.ke',
+        email: 'brian@zion.com',
         status: 'active',
       },
     ],
@@ -64,7 +64,7 @@ export function buildInvitationPreviewFixture(
 ): InvitationPreview {
   return {
     store: { name: 'Zion' },
-    email: 'new.member@zion.co.ke',
+    email: 'new.member@zion.com',
     has_password: false,
     ...overrides,
   };

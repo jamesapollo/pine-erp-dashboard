@@ -1,6 +1,6 @@
-# Commerce ERP dashboard
+# Pine ERP dashboard
 
-The admin dashboard for Commerce ERP: a React single-page app that signs staff in against the Laravel API with a cookie session. In production the build is served by the API itself from `public/admin/`.
+The admin dashboard for Pine ERP: a React single-page app that signs staff in against the Laravel API with a cookie session. In production the build is served by the API itself from `public/admin/`.
 
 ## Prerequisites
 

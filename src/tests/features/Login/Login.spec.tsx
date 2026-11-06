@@ -7,7 +7,7 @@ import { buildUserFixture } from '@/tests/fixtures/user';
 import { mockEndpoints } from '@/tests/mocks/endpoints';
 import { server } from '@/tests/mocks/server';
 
-const EMAIL = 'wanjiru@zion.co.ke';
+const EMAIL = 'wanjiru@zion.com';
 const PASSWORD = 'correct-horse-battery';
 
 function recordLogins(
@@ -165,10 +165,10 @@ describe('Login', () => {
     const calls = recordLogins();
     customRenderAtRoute({ url: '/login' });
 
-    await fillAndSubmit('  Wanjiru@Zion.co.ke ');
+    await fillAndSubmit('  Wanjiru@Zion.com ');
 
     await waitFor(() => expect(calls).toHaveLength(1));
-    expect(calls[0].body).toEqual({ email: 'Wanjiru@Zion.co.ke', password: PASSWORD });
+    expect(calls[0].body).toEqual({ email: 'Wanjiru@Zion.com', password: PASSWORD });
   });
 
   it('does not offer "Keep me signed in"', async () => {

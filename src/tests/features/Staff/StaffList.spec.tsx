@@ -30,7 +30,7 @@ function respondWithTeam({ permissions }: { permissions?: string[] } = {}) {
     buildStaffMemberFixture({
       id: 10,
       name: 'Wanjiru Kamau',
-      email: 'wanjiru@zion.co.ke',
+      email: 'wanjiru@zion.com',
       is_owner: true,
       role: { id: 1, name: 'Owner', slug: 'owner', is_system: true },
       last_active_at: new Date().toISOString(),
@@ -38,7 +38,7 @@ function respondWithTeam({ permissions }: { permissions?: string[] } = {}) {
     buildStaffMemberFixture({
       id: 12,
       name: 'Kofi Otieno',
-      email: 'kofi@zion.co.ke',
+      email: 'kofi@zion.com',
       status: 'invited',
       role: { id: 3, name: 'Staff', slug: 'staff', is_system: false },
       last_active_at: null,
@@ -132,7 +132,7 @@ describe('Staff list', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Invite staff' }));
     const dialog = await screen.findByRole('dialog', { name: 'Invite staff' });
-    await userEvent.type(within(dialog).getByLabelText('Email'), 'kofi@zion.co.ke');
+    await userEvent.type(within(dialog).getByLabelText('Email'), 'kofi@zion.com');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Send invite' }));
 
     expect(await within(dialog).findByText('This person is already on the team.')).toBeVisible();

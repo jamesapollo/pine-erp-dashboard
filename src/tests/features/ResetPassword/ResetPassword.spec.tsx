@@ -7,7 +7,7 @@ import { buildUserFixture } from '@/tests/fixtures/user';
 import { mockEndpoints } from '@/tests/mocks/endpoints';
 import { server } from '@/tests/mocks/server';
 
-const URL = '/reset-password?token=tok123&email=wanjiru%40zion.co.ke';
+const URL = '/reset-password?token=tok123&email=wanjiru%40zion.com';
 const PASSWORD = 'a-long-new-password';
 
 function recordResetRequests(
@@ -42,7 +42,7 @@ describe('Reset password', () => {
     expect(bodies).toEqual([
       {
         token: 'tok123',
-        email: 'wanjiru@zion.co.ke',
+        email: 'wanjiru@zion.com',
         password: PASSWORD,
         password_confirmation: PASSWORD,
       },
@@ -148,13 +148,13 @@ describe('Reset password', () => {
 
   it('keeps a plus sign in the email', async () => {
     const bodies = recordResetRequests();
-    customRenderAtRoute({ url: '/reset-password?token=tok123&email=a%2Bb%40zion.co.ke' });
+    customRenderAtRoute({ url: '/reset-password?token=tok123&email=a%2Bb%40zion.com' });
 
-    expect(await screen.findByLabelText('Email')).toHaveValue('a+b@zion.co.ke');
+    expect(await screen.findByLabelText('Email')).toHaveValue('a+b@zion.com');
     expect(screen.getByLabelText('Email')).toHaveAttribute('readonly');
     await fillAndSubmit();
 
     await waitFor(() => expect(bodies).toHaveLength(1));
-    expect(bodies[0]).toMatchObject({ email: 'a+b@zion.co.ke' });
+    expect(bodies[0]).toMatchObject({ email: 'a+b@zion.com' });
   });
 });

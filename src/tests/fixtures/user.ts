@@ -4,7 +4,7 @@ export function buildUserFixture(overrides: Partial<User> = {}): User {
   return {
     id: 1,
     name: 'Wanjiru Kamau',
-    email: 'wanjiru@zion.co.ke',
+    email: 'wanjiru@zion.com',
     memberships: [
       {
         store: { id: 1, name: 'Zion', slug: 'zion' },

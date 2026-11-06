@@ -7,7 +7,7 @@ import { buildUserFixture } from '@/tests/fixtures/user';
 import { mockEndpoints } from '@/tests/mocks/endpoints';
 import { server } from '@/tests/mocks/server';
 
-const EMAIL = 'wanjiru@zion.co.ke';
+const EMAIL = 'wanjiru@zion.com';
 
 function recordForgotPasswordRequests(
   respond: () => Response = () => new HttpResponse(null, { status: 204 }),

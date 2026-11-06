@@ -136,12 +136,12 @@ describe('Accept invite', () => {
 
   it('sends someone with a password to sign in and back', async () => {
     mockInvitation(
-      buildInvitationPreviewFixture({ has_password: true, email: 'old.hand@zion.co.ke' }),
+      buildInvitationPreviewFixture({ has_password: true, email: 'old.hand@zion.com' }),
     );
     customRenderAtRoute({ url: URL });
 
     const link = await screen.findByRole('link', {
-      name: 'Sign in as old.hand@zion.co.ke to join Zion',
+      name: 'Sign in as old.hand@zion.com to join Zion',
     });
     expect(link.getAttribute('href')).toContain(
       '/login?redirect=%2Faccept-invite%3Ftoken%3Dabc123',
@@ -150,7 +150,7 @@ describe('Accept invite', () => {
 
   it('brings someone with a password back to join after signing in with no active store', async () => {
     mockInvitation(
-      buildInvitationPreviewFixture({ has_password: true, email: 'old.hand@zion.co.ke' }),
+      buildInvitationPreviewFixture({ has_password: true, email: 'old.hand@zion.com' }),
     );
     const { hasAccepted } = recordAccepts();
     let isSignedIn = false;
@@ -173,9 +173,9 @@ describe('Accept invite', () => {
     const user = userEvent.setup();
 
     await user.click(
-      await screen.findByRole('link', { name: 'Sign in as old.hand@zion.co.ke to join Zion' }),
+      await screen.findByRole('link', { name: 'Sign in as old.hand@zion.com to join Zion' }),
     );
-    await user.type(await screen.findByLabelText('Email'), 'old.hand@zion.co.ke');
+    await user.type(await screen.findByLabelText('Email'), 'old.hand@zion.com');
     await user.type(screen.getByLabelText('Password'), 'correct-horse-battery');
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
 
