@@ -1,12 +1,11 @@
 import { type ReactNode } from 'react';
-import { Shirt } from 'lucide-react';
 
 import { type Order } from '@/types/sales';
+import { ProductThumbnail } from '@/components/products/ProductThumbnail';
 import { DetailRow } from '@/components/sales/DetailRow';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { DataTable } from '@/components/ui/DataTable';
-import { Icon } from '@/components/ui/Icon';
 import { OrderRef } from '@/components/ui/OrderRef';
 import { formatMoney } from '@/utils/money';
 
@@ -56,9 +55,11 @@ export function OrderItemsCard({ order, feeAction }: { order: Order; feeAction?:
             header: 'Product',
             render: (line) => (
               <div className="flex items-center gap-3">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-text-tertiary">
-                  <Icon icon={Shirt} size={18} />
-                </div>
+                <ProductThumbnail
+                  image={
+                    line.image_url ? { url: line.image_url, alt_text: line.product_name } : null
+                  }
+                />
                 <div>
                   <div className="font-medium">{line.product_name}</div>
                   <div className="text-xs text-text-tertiary">{line.variant_label}</div>

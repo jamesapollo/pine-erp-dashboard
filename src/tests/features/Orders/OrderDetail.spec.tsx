@@ -163,6 +163,27 @@ describe('Order detail', () => {
     expect(items.getByText('KES 11,500.00')).toBeVisible();
   });
 
+  it("shows each item's product photo, or a placeholder when it has none", async () => {
+    respondWithOrder(
+      buildConfirmedOrder({
+        lines: [
+          buildOrderLineFixture({ image_url: 'https://cdn.example.test/ankara-blue.jpg' }),
+          buildOrderLineFixture({ id: 2, product_name: 'Kitenge shirt', image_url: null }),
+        ],
+      }),
+    );
+    customRenderAtRoute({ url: '/orders/12' });
+
+    const items = await findItemsCard();
+    const firstRow = within(items.getByText('Ankara wrap dress').closest('tr') as HTMLElement);
+    expect(firstRow.getByRole('img', { name: 'Ankara wrap dress' })).toHaveAttribute(
+      'src',
+      'https://cdn.example.test/ankara-blue.jpg',
+    );
+    const secondRow = within(items.getByText('Kitenge shirt').closest('tr') as HTMLElement);
+    expect(secondRow.queryByRole('img')).not.toBeInTheDocument();
+  });
+
   it('shows offer savings when there are any', async () => {
     respondWithOrder(buildConfirmedOrder({ discount_total: buildMoney('500.00') }));
     customRenderAtRoute({ url: '/orders/12' });

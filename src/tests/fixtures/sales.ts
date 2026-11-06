@@ -42,6 +42,7 @@ export function buildOrderLineFixture(overrides: Partial<OrderLine> = {}): Order
     unit_discount: buildMoney('0.00'),
     unit_price_paid: buildMoney('4500.00'),
     line_total: buildMoney('4500.00'),
+    image_url: null,
     ...overrides,
   };
 }

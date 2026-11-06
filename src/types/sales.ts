@@ -34,6 +34,8 @@ export type OrderLine = {
   unit_discount: Money;
   unit_price_paid: Money;
   line_total: Money;
+  // The product's photo as the catalogue has it now (not saved with the order); null when there is none.
+  image_url: string | null;
 };
 
 export type DeliveryTimelineEvent = {
